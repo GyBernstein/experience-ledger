@@ -1,0 +1,92 @@
+# Experience Ledger V1
+
+Java 21 / Spring Boot 3.5.16 / PostgreSQL 16 / pgvector 0.8.2 的模块化单体。以项目所有者提供的 Frozen Specification 为最高优先级；冻结决策和冲突处理见 `docs/implementation-plan.md`。两份原始设计文档不进入公开仓库，来源校验值见 `docs/specification-basis.md`。
+
+实现 Candidate → Review → Version/Claim/Evidence → Retrieval → Usage/Outcome → Evolution Candidate → Supersession。默认无 LLM、无外部 Embedding，也能完成采集、人工审核与全文检索。配置 Embedding Provider 后启用混合检索。
+
+**交付验收状态请先看 `docs/verification.md`。代码实现、补充环境验证、真实 PostgreSQL 并发验收分开记录。**
+
+## 快速启动
+
+需要 Docker Engine + Compose v2。以下命令在项目根目录执行。
+
+```bash
+cp .env.example .env
+# Windows PowerShell: Copy-Item .env.example .env
+# 编辑 .env：设置数据库密码、调用凭证和真实 actorId。
+docker compose up -d --build
+docker compose logs -f application
+```
+
+看到应用启动成功后，初始化演示 Space：
+
+```bash
+docker compose exec -T db psql -U postgres -d ledger -v ON_ERROR_STOP=1 -v space_id=11111111-1111-1111-1111-111111111111 -v space_name=Demo < scripts/create-space.sql
+```
+
+PowerShell 可使用：
+
+```powershell
+Get-Content -Raw scripts/create-space.sql | docker compose exec -T db psql -U postgres -d ledger -v ON_ERROR_STOP=1 -v space_id=11111111-1111-1111-1111-111111111111 -v space_name=Demo
+```
+
+浏览器打开 `http://localhost:8080/actuator/health`，预期 `{"status":"UP"}`。V1 仅提供 API，没有管理页面。
+
+运行完整示例（Python 3.10+，无第三方依赖）：
+
+```bash
+export LEDGER_TOKEN=local-human-token-change-me
+python scripts/seed_demo.py
+```
+
+PowerShell：
+
+```powershell
+$env:LEDGER_TOKEN = 'local-human-token-change-me'
+python scripts/seed_demo.py
+```
+
+脚本每次新建一组带 `DEMO-` 前缀的数据，不删除已有数据。它包含成功/失败经验、Observed/Derived Claim、两个 Evidence、Episode、一次 Usage、两次 Outcome、V1→V2 和 CONTRADICTS，并验证闭环。`searchMode=FTS_METADATA` 是默认禁用 Embedding 时的正常结果。
+
+## 开发与测试
+
+需要 JDK 21、Maven 3.9+。数据库运行账户和 migration 账户应分开。
+
+```bash
+mvn test          # 领域单元测试，不需要数据库
+mvn verify        # 使用 Testcontainers 自动启动真实 PostgreSQL + pgvector；需要 Docker
+mvn package -DskipTests
+java -jar target/experience-ledger-1.0.0.jar
+```
+
+也可以完全在 Docker 中运行完整测试：
+
+```bash
+docker compose --profile test run --rm tests
+```
+
+测试使用独立 `test-db`，不连接业务数据库。测试可重复运行，但会累积测试记录；如需全新测试库，只重建 `test-db` 容器。不要对业务数据库执行测试。
+
+已有独立测试 PostgreSQL 可设置 `LEDGER_IT_URL`、`LEDGER_IT_ADMIN_USER`、`LEDGER_IT_ADMIN_PASSWORD` 后执行 `mvn verify`。测试管理员需要创建隔离测试角色；运行中的 Service 使用非超级用户、无 BYPASSRLS 的角色。默认不跳过数据库测试。
+
+## 接入方式
+
+1. 为 Agent 配置独立 `AGENT` 凭证，通过 `/candidates/capture` 提交可审计摘要。
+2. 为审核人配置 `HUMAN` 凭证，完成 review / verify。一个凭证只绑定一个 Actor 和 Space。
+3. Agent 检索 `/experiences/search`，记录 `/usages` 与 `/usages/{id}/outcomes`。
+4. 新反馈走 `/experiences/{versionId}/feedback`，形成 Evolution Candidate。
+
+`X-Actor-Type`、`X-Actor-Id`、`X-Space-Id` 等请求头不会改变身份。HTTP Bearer 凭证由服务端配置绑定真实身份。不要把 HUMAN/Trusted Workflow 的凭证交给 Agent。
+
+## 文档
+
+- `docs/implementation-plan.md`：阶段、冻结冲突处理与验收映射。
+- `docs/architecture.md`：模块边界、事务和账户配置。
+- `docs/domain-model.md`：14 张核心表与辅助投影。
+- `docs/api.md`：全部接口、字段与最小发布示例。
+- `docs/bitemporal.md`：双时态实例与历史查询。
+- `docs/capture-flow.md`：低成本采集、审核、幂等与异步任务。
+- `docs/providers-and-retrieval.md`：Provider 接入、中文检索、匹配和统计口径。
+- `docs/verification.md`：本次实际验证与待验收项。
+
+生产接入前先更换示例密码和 token，按 Space 配置 worker 列表；默认 Compose 仅将 HTTP 绑定到本机。外部访问可接入现有 TLS 反向代理。数据库端口未暴露。

@@ -1,0 +1,8 @@
+/target/
+.env
+*.log
+.idea/
+*.iml
+__pycache__/
+/docs/specs/
+/dist/

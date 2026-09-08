@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.example.ledger.LedgerIT
+-------------------------------------------------------------------------------
+Tests run: 16, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 4.801 s -- in com.example.ledger.LedgerIT
