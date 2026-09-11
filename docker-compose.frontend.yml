@@ -1,0 +1,9 @@
+# Usage: docker compose -f docker-compose.yml -f docker-compose.frontend.yml up -d --build
+services:
+  frontend:
+    build: ./frontend
+    ports: ["127.0.0.1:3000:80"]
+    depends_on:
+      application:
+        condition: service_started
+    restart: unless-stopped

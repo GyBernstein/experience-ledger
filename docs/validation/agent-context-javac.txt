@@ -1,0 +1,4 @@
+JDK 21.0.12.1+1 javac --release 21 -parameters
+All src/main/java sources compiled against dependencies from prior V1 executable JAR: PASS
+No new backend dependencies. Deprecated API warnings only.
+This does not substitute for Maven or native PostgreSQL integration tests.

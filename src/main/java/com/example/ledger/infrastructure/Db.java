@@ -21,6 +21,10 @@ public class Db {
    return body.get();
   });
  }
+ public <T>T snapshot(ActorContext actor,String reason,Supplier<T> body){
+  var t=new TransactionTemplate(tx.getTransactionManager());t.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
+  return t.execute(status->with(actor,reason,body));
+ }
  public Map<String,Object> params(Object... pairs) {
   var p=new HashMap<String,Object>(); for(int i=0;i<pairs.length;i+=2) {
    Object v=pairs[i+1];if(v instanceof Instant t)v=OffsetDateTime.ofInstant(t,ZoneOffset.UTC);

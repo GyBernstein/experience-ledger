@@ -74,7 +74,7 @@ class LedgerIT {
   assertFalse((Boolean)db.one("select rolsuper from pg_roles where rolname=current_user",Map.of()).get("rolsuper"));
   assertEquals(0.0,((Number)db.one("select '[1,0,0]'::vector <=> '[1,0,0]'::vector as distance",Map.of()).get("distance")).doubleValue());
   assertTrue((Boolean)db.one("select to_tsvector('simple',ledger_fts_text('候选剪枝优化')) @@ plainto_tsquery('simple','剪枝') as ok",Map.of()).get("ok"));
-  assertEquals(2L,db.one("select count(*) as n from flyway_schema_history where success and type='SQL'",Map.of()).get("n"));return null;
+  assertEquals(3L,db.one("select count(*) as n from flyway_schema_history where success and type='SQL'",Map.of()).get("n"));return null;
  });}
  @Test void httpEndToEnd(){
   var headers=new HttpHeaders();headers.setBearerAuth(HUMAN_TOKEN);headers.setContentType(MediaType.APPLICATION_JSON);
@@ -100,7 +100,7 @@ class LedgerIT {
  @Test void agentCannotVerifyOrSpoofActor(){
   var c=reviewed(draft());var headers=new HttpHeaders();headers.setBearerAuth(AGENT_TOKEN);headers.set("X-Actor-Type","HUMAN");
   var response=http.postForEntity("/api/v1/candidates/"+c.get("id")+"/verify",new HttpEntity<>(new Verify("CREATE_NEW_FAMILY","forbidden","test","FAILURE",null,null,revision(c),"attempt"),headers),JsonNode.class);
-  assertEquals(403,response.getStatusCode().value());assertEquals("GOVERNANCE_FORBIDDEN",response.getBody().path("code").asText());
+  assertEquals(403,response.getStatusCode().value());assertEquals("AGENT_GATEWAY_REQUIRED",response.getBody().path("code").asText());
  }
  @Test void temporalValidAndRecordedBoundaries(){
   var d=draft();var end=Instant.parse("2026-07-01T00:00:00Z");

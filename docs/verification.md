@@ -36,4 +36,8 @@ docker compose --profile test run --rm tests
 
 ## 交付不包含
 
-复杂 RBAC、管理前端、具体业务系统适配器、真实 LLM 服务实现、自动审核、Ontology/知识图谱。通用 HTTP Embedding Provider 需要接入符合约定的模型服务；测试向量仅用于验证检索管线，不代表语义质量评估。
+复杂 RBAC、具体业务系统适配器、真实 LLM 服务实现、自动审核、Ontology/知识图谱。通用 HTTP Embedding Provider 需要接入符合约定的模型服务；测试向量仅用于验证检索管线，不代表语义质量评估。
+
+## 后续前端交付
+
+按项目所有者追加要求，已增加 React 前端（包括终端用户录入）。本文件上述测试记录对应原后端交付；本次前端构建与客户端 API 验证记录见 `frontend-verification.md`。

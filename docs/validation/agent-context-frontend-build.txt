@@ -1,0 +1,15 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> experience-ledger-frontend@1.0.0 build
+> tsc --noEmit && vite build
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 1737 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.52 kB │ gzip:  0.38 kB
+dist/assets/index-BhqwDwxU.css   20.33 kB │ gzip:  5.63 kB
+dist/assets/index-DYJpQ7GQ.js   285.25 kB │ gzip: 86.64 kB
+
+✓ built in 563ms

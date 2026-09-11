@@ -1,0 +1,15 @@
+{
+  "checks": "PASS",
+  "count": 9,
+  "scenarios": [
+    "identity binding CAS and old API bypass prevention",
+    "Compact provenance, negative reservation and context/evidence budgets",
+    "cache reuse and summary origin policy",
+    "scope/confidence enforcement and budget escalation",
+    "evidence ownership and bypass prevention",
+    "feedback idempotency, one Usage multiple Outcomes, costs and human veto",
+    "validation invalidates hot Compact",
+    "corrected evidence and mandatory negative case enforcement",
+    "policy disabling and revision CAS"
+  ]
+}

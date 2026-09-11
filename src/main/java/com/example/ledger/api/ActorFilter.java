@@ -29,6 +29,10 @@ public class ActorFilter extends OncePerRequestFilter {
    if(found==null){res.setStatus(401);res.setContentType("application/json");json.writeValue(res.getWriter(),Map.of("code","UNAUTHORIZED","message","Valid bearer token required","traceId",trace,"details",Map.of()));return;}
    var actor=new ActorContext(found.actorType(),found.actorId(),found.spaceId());
    if(req.getRequestURI().startsWith("/actuator/") && actor.actorType()!=ActorContext.ActorType.HUMAN && actor.actorType()!=ActorContext.ActorType.TRUSTED_WORKFLOW){res.setStatus(403);return;}
+   if(actor.actorType()==ActorContext.ActorType.AGENT||actor.actorType()==ActorContext.ActorType.SYSTEM){
+    String path=req.getRequestURI();boolean allowed=(req.getMethod().equals("POST")&&Set.of("/api/v1/candidates/capture","/api/v2/context","/api/v2/feedback").contains(path))||(req.getMethod().equals("GET")&&(path.equals("/api/v2/me")||path.matches("/api/v2/evidence/[0-9a-fA-F-]{36}")));
+    if(!allowed){res.setStatus(403);res.setContentType("application/json");json.writeValue(res.getWriter(),Map.of("code","AGENT_GATEWAY_REQUIRED","message","Use policy-controlled V2 endpoints","traceId",trace));return;}
+   }
    req.setAttribute("actor",actor);
    if(req.getContentLengthLong()>1_048_576){res.setStatus(413);return;}
    chain.doFilter(req,res);

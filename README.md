@@ -1,10 +1,19 @@
-# Experience Ledger V1
+# Experience Ledger V1.1 · Agent Context
 
 Java 21 / Spring Boot 3.5.16 / PostgreSQL 16 / pgvector 0.8.2 的模块化单体。以项目所有者提供的 Frozen Specification 为最高优先级；冻结决策和冲突处理见 `docs/implementation-plan.md`。两份原始设计文档不进入公开仓库，来源校验值见 `docs/specification-basis.md`。
 
 实现 Candidate → Review → Version/Claim/Evidence → Retrieval → Usage/Outcome → Evolution Candidate → Supersession。默认无 LLM、无外部 Embedding，也能完成采集、人工审核与全文检索。配置 Embedding Provider 后启用混合检索。
 
 **交付验收状态请先看 `docs/verification.md`。代码实现、补充环境验证、真实 PostgreSQL 并发验收分开记录。**
+
+## V1.1 新增能力
+
+策略与身份绑定、独立验证/置信度、同范围 Compact、预算/反例/证据约束、幂等反馈及运营统计。前端保留终端用户录入，新增「上下文供给」「知识压缩」「检索策略」「Agent 运营」。
+
+- `docs/agent-context-design.md`：需求映射、设计边界和开发阶段。
+- `docs/agent-context-api.md`：V2 Gateway 和管理 API。
+- `docs/agent-context-guide.md`：启动、升级和业务操作。
+- `docs/agent-context-verification.md`：本次验证结果与待验收项。
 
 ## 快速启动
 
@@ -30,7 +39,7 @@ PowerShell 可使用：
 Get-Content -Raw scripts/create-space.sql | docker compose exec -T db psql -U postgres -d ledger -v ON_ERROR_STOP=1 -v space_id=11111111-1111-1111-1111-111111111111 -v space_name=Demo
 ```
 
-浏览器打开 `http://localhost:8080/actuator/health`，预期 `{"status":"UP"}`。V1 仅提供 API，没有管理页面。
+浏览器打开 `http://localhost:8080/actuator/health`，预期 `{"status":"UP"}`。前端工作台位于 `frontend/`，可进行终端用户录入、审核、检索和反馈。前后端一起启动及操作说明见 `frontend/README.md` 和 `docs/frontend-user-guide.md`。
 
 运行完整示例（Python 3.10+，无第三方依赖）：
 
@@ -73,8 +82,10 @@ docker compose --profile test run --rm tests
 
 1. 为 Agent 配置独立 `AGENT` 凭证，通过 `/candidates/capture` 提交可审计摘要。
 2. 为审核人配置 `HUMAN` 凭证，完成 review / verify。一个凭证只绑定一个 Actor 和 Space。
-3. Agent 检索 `/experiences/search`，记录 `/usages` 与 `/usages/{id}/outcomes`。
-4. 新反馈走 `/experiences/{versionId}/feedback`，形成 Evolution Candidate。
+3. 人员配置策略并绑定身份，Agent 通过 `/api/v2/context` 获取预算内上下文，通过 `/api/v2/evidence/{id}?runId=...` 下钻证据。
+4. Agent 通过 `/api/v2/feedback` 幂等报告采用与结果，人员复核后决定是否形成 Evolution Candidate。
+
+AGENT/SYSTEM 的 V1 通用检索、Evidence 直读与 Usage/Outcome 写入现在返回 403，须升级到 V2 Gateway。V1 capture 保留；人员治理接口继续可用。
 
 `X-Actor-Type`、`X-Actor-Id`、`X-Space-Id` 等请求头不会改变身份。HTTP Bearer 凭证由服务端配置绑定真实身份。不要把 HUMAN/Trusted Workflow 的凭证交给 Agent。
 
@@ -90,3 +101,13 @@ docker compose --profile test run --rm tests
 - `docs/verification.md`：本次实际验证与待验收项。
 
 生产接入前先更换示例密码和 token，按 Space 配置 worker 列表；默认 Compose 仅将 HTTP 绑定到本机。外部访问可接入现有 TLS 反向代理。数据库端口未暴露。
+
+## 前端工作台
+
+React 19 + TypeScript + Vite，包含终端用户的经验、证据和使用结果录入，以及审核、历史追溯和审计。无需编写 JSON 即可完成基本采集、文字证据和文字反馈。
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.frontend.yml up -d --build
+```
+
+初始化 Space 后打开 `http://localhost:3000`。已有后端也可以在 `frontend/` 下执行 `npm ci`、`npm run dev`，访问 `http://localhost:5173`。本次前端验证见 `docs/frontend-verification.md`。

@@ -1,0 +1,19 @@
+{
+  "checks": "PASS",
+  "client": "frontend/src/api.ts",
+  "flow": [
+    "evidence",
+    "idempotent capture",
+    "review",
+    "revision conflict",
+    "verify",
+    "search",
+    "history",
+    "usage",
+    "two outcomes",
+    "evidence correction",
+    "audit"
+  ],
+  "environment": "Spring Boot HTTP + PGlite PostgreSQL WASM + pgvector; not native PostgreSQL concurrency or browser UI testing",
+  "date": "2026-09-09"
+}

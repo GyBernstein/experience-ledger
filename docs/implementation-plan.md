@@ -11,7 +11,7 @@
 | 5 Provider 与运行 | 无模型可用、异步失败隔离 | Provider 接口、Noop、HTTP Embedding、DB job worker、Actuator | 故障注入、重试、审计、指标 |
 | 6 交付验收 | 可重复演示和测试 | Docker、测试、Python client、示例脚本、文档 | 见 verification.md；真实 PG 并发测试是发布门槛 |
 
-本次已实现各阶段代码；执行证据和未完成环境验收以 verification.md 为准。后续先在目标环境完成第 6 阶段，再接入一类真实 Agent coding session，不提前增加图谱或前端。
+本次已实现各阶段代码；执行证据和未完成环境验收以 verification.md 为准。后续先在目标环境完成第 6 阶段，再接入一类真实 Agent coding session，不提前增加图谱。按项目所有者后续要求，现已补充前端工作台；前端范围与验证见 `frontend/README.md` 和 `docs/frontend-verification.md`。
 
 ## 原设计与 Frozen 的冲突
 

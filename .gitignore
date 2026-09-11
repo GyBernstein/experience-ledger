@@ -6,3 +6,6 @@
 __pycache__/
 /docs/specs/
 /dist/
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.env

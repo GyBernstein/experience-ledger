@@ -1,0 +1,7 @@
+PGlite PostgreSQL WASM + vector
+V1 + V2 + V3 migrations: PASS
+Non-superuser / NOBYPASSRLS database checks: PASS
+Forced RLS on all 7 V3 tables; cross-space read/write blocked
+Context run update/delete/truncate blocked
+Agent governance insert blocked
+Policy revision and before/after audit: PASS
