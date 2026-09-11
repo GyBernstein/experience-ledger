@@ -3,7 +3,7 @@ import com.example.ledger.api.Requests.Search;
 import com.example.ledger.domain.*;
 import com.example.ledger.infrastructure.Db;
 import com.example.ledger.provider.EmbeddingProvider;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.micrometer.core.instrument.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

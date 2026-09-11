@@ -2,7 +2,7 @@ package com.example.ledger.context;
 import com.example.ledger.context.ContextRequests.*;
 import com.example.ledger.domain.*;
 import com.example.ledger.infrastructure.Db;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 import java.util.*;
 @Service

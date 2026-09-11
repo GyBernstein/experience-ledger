@@ -5,7 +5,7 @@ import com.example.ledger.api.Requests.OutcomeInput;
 import com.example.ledger.application.LedgerService;
 import com.example.ledger.domain.*;
 import com.example.ledger.infrastructure.Db;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.*;

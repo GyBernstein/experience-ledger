@@ -1,6 +1,6 @@
 package com.example.ledger.api;
 import com.example.ledger.domain.ActorContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import org.slf4j.*;

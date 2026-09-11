@@ -3,8 +3,8 @@ package com.example.ledger.application;
 import com.example.ledger.api.Requests.*;
 import com.example.ledger.domain.*;
 import com.example.ledger.infrastructure.Db;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Validator;
 import org.springframework.stereotype.Service;
@@ -211,8 +211,8 @@ public class LedgerService {
  private String retrievalText(Draft d){StringBuilder b=new StringBuilder(String.join(" ",d.title(),d.summary(),or(d.problem(),""),or(d.decision(),""),or(d.action(),""),d.lesson()));
   d.claims().forEach(c->b.append(' ').append(c.content()));safe(d.contextRefs()).forEach(c->b.append(' ').append(c.refValue()));return b.toString();}
  public static String hash(String s){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8)));}catch(Exception e){throw new IllegalStateException(e);}}
- private JsonNode canonical(JsonNode n){if(n.isObject()){var out=db.json.createObjectNode();var keys=new TreeSet<String>();n.fieldNames().forEachRemaining(keys::add);keys.forEach(k->out.set(k,canonical(n.get(k))));return out;}if(n.isArray()){var out=db.json.createArrayNode();n.forEach(v->out.add(canonical(v)));return out;}return n;}
- private void rejectPrivateFields(JsonNode n){if(n.isObject()){n.fields().forEachRemaining(e->{String k=e.getKey().replace("_","").toLowerCase(Locale.ROOT);if(Set.of("chainofthought","privatechainofthought","privatereasoning").contains(k))throw LedgerException.invalid("Private chain-of-thought is not an accepted capture field");rejectPrivateFields(e.getValue());});}else if(n.isArray())n.forEach(this::rejectPrivateFields);}
+ private JsonNode canonical(JsonNode n){if(n.isObject()){var out=db.json.createObjectNode();var keys=new TreeSet<String>();n.propertyNames().iterator().forEachRemaining(keys::add);keys.forEach(k->out.set(k,canonical(n.get(k))));return out;}if(n.isArray()){var out=db.json.createArrayNode();n.forEach(v->out.add(canonical(v)));return out;}return n;}
+ private void rejectPrivateFields(JsonNode n){if(n.isObject()){n.properties().forEach(e->{String k=e.getKey().replace("_","").toLowerCase(Locale.ROOT);if(Set.of("chainofthought","privatechainofthought","privatereasoning").contains(k))throw LedgerException.invalid("Private chain-of-thought is not an accepted capture field");rejectPrivateFields(e.getValue());});}else if(n.isArray())n.forEach(this::rejectPrivateFields);}
  private static boolean blank(String s){return s==null||s.isBlank();}
  private static String or(String s,String fallback){return s==null?(fallback==null?"":fallback):s;}
  private static <T> List<T> safe(List<T> s){return s==null?List.of():s;}

@@ -1,10 +1,10 @@
 # Experience Ledger V1.1 · Agent Context
 
-Java 21 / Spring Boot 3.5.16 / PostgreSQL 16 / pgvector 0.8.2 的模块化单体。以项目所有者提供的 Frozen Specification 为最高优先级；冻结决策和冲突处理见 `docs/implementation-plan.md`。两份原始设计文档不进入公开仓库，来源校验值见 `docs/specification-basis.md`。
+Java 21 / Spring Boot 4.1.1 / PostgreSQL 16 / pgvector 0.8.2 的模块化单体。以项目所有者提供的 Frozen Specification 为最高优先级；冻结决策和冲突处理见 `docs/implementation-plan.md`。两份原始设计文档不进入公开仓库，来源校验值见 `docs/specification-basis.md`。
 
 实现 Candidate → Review → Version/Claim/Evidence → Retrieval → Usage/Outcome → Evolution Candidate → Supersession。默认无 LLM、无外部 Embedding，也能完成采集、人工审核与全文检索。配置 Embedding Provider 后启用混合检索。
 
-**交付验收状态请先看 `docs/verification.md`。代码实现、补充环境验证、真实 PostgreSQL 并发验收分开记录。**
+**当前升级验收见 `docs/spring-boot-4-verification.md`；V1 历史验收保留在 `docs/verification.md`。**
 
 ## V1.1 新增能力
 
@@ -14,6 +14,18 @@ Java 21 / Spring Boot 3.5.16 / PostgreSQL 16 / pgvector 0.8.2 的模块化单体
 - `docs/agent-context-api.md`：V2 Gateway 和管理 API。
 - `docs/agent-context-guide.md`：启动、升级和业务操作。
 - `docs/agent-context-verification.md`：本次验证结果与待验收项。
+
+## Windows / IDEA 本地运行
+
+附件中 localhost:5432 连接被拒的问题已补充本地开发配置。启动 Docker Desktop 后执行：
+
+```powershell
+.\scripts\start-local.ps1 -DatabaseOnly
+```
+
+在 IDEA 激活 `local` profile，Working directory 设置为项目根目录，再启动 LedgerApplication；数据库默认为 `127.0.0.1:15432`。首次应用启动完成 Flyway 后执行 `.\scripts\initialize-local-space.ps1`。脚本会从 Compose 配置生成本地连接与凭证，不需要 IDEA 自动读取 `.env`。
+
+Spring Boot 已升级至 **4.1.1**，保持 JDK21。Maven Reload 后先执行 `mvn clean test`。详细修复、已有数据库接入和密码问题见 `docs/spring-boot-4-upgrade.md`；本次验证见 `docs/spring-boot-4-verification.md`。
 
 ## 快速启动
 

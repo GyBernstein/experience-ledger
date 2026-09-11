@@ -1,5 +1,5 @@
 package com.example.ledger.context;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.*;

@@ -1,5 +1,5 @@
 package com.example.ledger.domain;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 public final class ClaimRules {
  private ClaimRules() {}
  public static void validate(String type,String origin,String method) {

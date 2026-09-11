@@ -2,7 +2,7 @@ package com.example.ledger;
 import com.example.ledger.domain.*;
 import com.example.ledger.retrieval.Applicability;
 import com.example.ledger.provider.EmbeddingProvider;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
@@ -24,7 +24,7 @@ class DomainTest {
   assertDoesNotThrow(()->ClaimRules.validate("CAUSAL_HYPOTHESIS","AGENT_DERIVED","tool-result synthesis"));
  }
  @Test void originCannotBeRelabelled()throws Exception{
-  var json=new ObjectMapper();var before=json.readTree("""
+  var json=tools.jackson.databind.json.JsonMapper.builder().build();var before=json.readTree("""
    {"claims":[{"content":"pruning causes loss","originType":"AGENT_DERIVED","claimType":"CAUSAL_HYPOTHESIS"}]}
    """);
   assertThrows(LedgerException.class,()->ClaimRules.preserveOrigin(before,json.readTree("""
@@ -35,7 +35,7 @@ class DomainTest {
    """)));
  }
  @Test void applicabilityRangesAndUnknowns()throws Exception{
-  var json=new ObjectMapper();var rules=json.readTree("{\"lengthMin\":700,\"lengthMax\":900,\"material\":[\"A\",\"B\"]}");
+  var json=tools.jackson.databind.json.JsonMapper.builder().build();var rules=json.readTree("{\"lengthMin\":700,\"lengthMax\":900,\"material\":[\"A\",\"B\"]}");
   assertEquals(1,Applicability.evaluate(rules,json.readTree("{\"length\":700,\"material\":\"A\"}")).score());
   assertEquals(-1,Applicability.evaluate(json.readTree("{\"lengthMin\":700}"),json.readTree("{\"length\":699}")).score());
   assertEquals(0,Applicability.evaluate(rules,json.readTree("{}")).score());

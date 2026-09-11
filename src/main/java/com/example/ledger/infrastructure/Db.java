@@ -1,6 +1,6 @@
 package com.example.ledger.infrastructure;
 import com.example.ledger.domain.*;
-import com.fasterxml.jackson.databind.*;
+import tools.jackson.databind.*;
 import org.postgresql.util.PGobject;
 import org.slf4j.MDC;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;

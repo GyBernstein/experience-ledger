@@ -6,16 +6,17 @@ import com.example.ledger.domain.*;
 import com.example.ledger.infrastructure.Db;
 import com.example.ledger.provider.*;
 import com.example.ledger.retrieval.RetrievalService;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.*;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.context.annotation.*;
 import org.springframework.http.*;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import java.sql.DriverManager;
 import java.time.Instant;
@@ -25,15 +26,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(LedgerIT.Providers.class)
+@org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate
 class LedgerIT {
- static PostgreSQLContainer<?> container;
+ static PostgreSQLContainer container;
  static final UUID SPACE=UUID.fromString("11111111-1111-1111-1111-111111111111");
  static final String HUMAN_TOKEN="test-human-token-0123456789",AGENT_TOKEN="test-agent-token-0123456789";
  static final ActorContext HUMAN=new ActorContext(ActorContext.ActorType.HUMAN,"reviewer",SPACE);
  static final boolean WASM="true".equals(System.getenv("LEDGER_IT_WASM"));
  @DynamicPropertySource static void configure(DynamicPropertyRegistry r)throws Exception{
   String url=System.getenv("LEDGER_IT_URL"),admin=System.getenv().getOrDefault("LEDGER_IT_ADMIN_USER","postgres"),password=System.getenv().getOrDefault("LEDGER_IT_ADMIN_PASSWORD","test-only");
-  if(url==null){container=new PostgreSQLContainer<>(DockerImageName.parse("pgvector/pgvector:0.8.2-pg16").asCompatibleSubstituteFor("postgres")).withDatabaseName("ledger_test").withUsername(admin).withPassword(password);container.start();url=container.getJdbcUrl();}
+  if(url==null){container=new PostgreSQLContainer(DockerImageName.parse("pgvector/pgvector:0.8.2-pg16").asCompatibleSubstituteFor("postgres")).withDatabaseName("ledger_test").withUsername(admin).withPassword(password);container.start();url=container.getJdbcUrl();}
   try(var c=DriverManager.getConnection(url,admin,password);var s=c.createStatement()){
    s.execute("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='ledger_it_app') THEN CREATE ROLE ledger_it_app LOGIN PASSWORD 'integration-only' NOSUPERUSER NOBYPASSRLS; END IF; END $$");
    s.execute("GRANT USAGE ON SCHEMA public TO ledger_it_app");

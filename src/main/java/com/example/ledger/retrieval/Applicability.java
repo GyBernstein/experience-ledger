@@ -1,12 +1,12 @@
 package com.example.ledger.retrieval;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import java.util.*;
 public final class Applicability {
  private Applicability(){}
  public record Match(double score,List<String> matched,List<String> mismatched,List<String> unknown){}
  public static Match evaluate(JsonNode rules,JsonNode context){
   List<String> yes=new ArrayList<>(),no=new ArrayList<>(),unknown=new ArrayList<>();
-  if(rules!=null && rules.isObject())rules.fields().forEachRemaining(e->{
+  if(rules!=null && rules.isObject())rules.properties().forEach(e->{
    String key=e.getKey();JsonNode expected=e.getValue();String lookup=key;
    boolean min=key.endsWith("Min") && expected.isNumber(),max=key.endsWith("Max") && expected.isNumber();
    if(min||max)lookup=key.substring(0,key.length()-3);

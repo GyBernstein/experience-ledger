@@ -12,6 +12,7 @@ spring:
     user: ${DB_MIGRATION_USER:ledger_owner}
     password: ${DB_MIGRATION_PASSWORD:}
   jackson:
+    use-jackson2-defaults: true
     deserialization:
       fail-on-unknown-properties: true
 server:

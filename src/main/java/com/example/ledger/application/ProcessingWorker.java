@@ -2,7 +2,7 @@ package com.example.ledger.application;
 import com.example.ledger.domain.*;
 import com.example.ledger.infrastructure.Db;
 import com.example.ledger.provider.*;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -40,7 +40,7 @@ public class ProcessingWorker {
    if(suggested==null || !suggested.isObject())throw new IllegalArgumentException("Enrichment must return an object");
    ClaimRules.preserveOrigin(extracted,suggested);
    // Provider output is a suggestion; originals and human draft are retained unchanged.
-   var copy=extracted.deepCopy();((com.fasterxml.jackson.databind.node.ObjectNode)copy).set("enrichmentSuggestion",suggested);extracted=copy;
+   var copy=extracted.deepCopy();((tools.jackson.databind.node.ObjectNode)copy).set("enrichmentSuggestion",suggested);extracted=copy;
   }catch(Exception e){failure="ENRICHMENT_FAILED";metrics.counter("ledger.candidate.processing.failures").increment();}
   EmbeddingProvider.Result result=null;String embeddingStatus;
   try{result=embedding.embed((String)row.get(candidate?"raw_content":"retrieval_text"));embeddingStatus=result==null?"DISABLED":"READY";}
