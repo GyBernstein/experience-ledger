@@ -19,9 +19,9 @@ server:
   port: ${PORT:8080}
   max-http-request-header-size: 16KB
 logging:
-  structured:
-    format:
-      console: logstash
+  level:
+    root: INFO
+    com.example.ledger: DEBUG
 management:
   endpoints:
     web:

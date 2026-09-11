@@ -1,0 +1,47 @@
+{
+  "checks": "PASS",
+  "count": 9,
+  "scenarios": [
+    "identity binding CAS and old API bypass prevention",
+    "Compact provenance, negative reservation and context/evidence budgets",
+    "cache reuse and summary origin policy",
+    "scope/confidence enforcement and budget escalation",
+    "evidence ownership and bypass prevention",
+    "feedback idempotency, one Usage multiple Outcomes, costs and human veto",
+    "validation invalidates hot Compact",
+    "corrected evidence and mandatory negative case enforcement",
+    "policy disabling and revision CAS"
+  ]
+}
+{
+  "run": "DEMO-5ef88d3d23",
+  "familyId": "31d7bb00-29ec-4f57-9872-5c2a6ece2ec3",
+  "v1": "fd6af7ad-6cf9-4d10-a34f-8f7195c3e98f",
+  "v2": "a2a76f50-2565-4cdc-b735-8bbbadb68cd2",
+  "failureFamilyId": "87fba988-dafd-40b7-9c0b-7881b110ddf3",
+  "usageId": "38db6842-e29a-4d4f-b6b7-0740a7fdd2e8",
+  "searchMode": "FTS_METADATA",
+  "checks": "PASS"
+}
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> experience-ledger-frontend@1.0.0 test:api
+> node --import tsx tests/api-smoke.ts
+
+{
+  "checks": "PASS",
+  "client": "frontend/src/api.ts",
+  "flow": [
+    "evidence",
+    "idempotent capture",
+    "review",
+    "revision conflict",
+    "verify",
+    "search",
+    "history",
+    "usage",
+    "two outcomes",
+    "evidence correction",
+    "audit"
+  ]
+}

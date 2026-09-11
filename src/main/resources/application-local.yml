@@ -1,0 +1,17 @@
+# Activate with --spring.profiles.active=local (IDE working directory: project root).
+# start-local.ps1 prepares .local/application-local.properties from Compose's resolved env.
+
+spring:
+  config:
+    import: optional:${LEDGER_LOCAL_CONFIG:file:./.local/application-local.properties}
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:15432/ledger}
+    username: ${DB_USER:ledger_app}
+    password: ${DB_PASSWORD:local-app-change-me}
+  flyway:
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:15432/ledger}
+    user: ${DB_MIGRATION_USER:ledger_owner}
+    password: ${DB_MIGRATION_PASSWORD:local-owner-change-me}
+ledger:
+  security:
+    principals: ${LEDGER_PRINCIPALS:[]}

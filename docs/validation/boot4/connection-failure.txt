@@ -1,0 +1,4 @@
+Packaged Spring Boot 4.1.1 application against a refused PostgreSQL endpoint:
+Exit nonzero: PASS
+DatabaseConnectionFailureAnalyzer registered and printed start-local.ps1 / local profile instructions: PASS
+Flyway remains enabled: PASS

@@ -1,0 +1,5 @@
+# Host-run Java/IDE development. Production Compose keeps PostgreSQL private.
+services:
+  db:
+    ports:
+      - "127.0.0.1:${LEDGER_LOCAL_DB_PORT:-15432}:5432"
