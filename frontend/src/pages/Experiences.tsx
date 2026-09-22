@@ -711,6 +711,7 @@ function VersionActions({
             <RefreshCw size={15} />
             重建向量
           </button>
+          <a className="button" href={`#/judgments/version/${item.versionId}`}>审核跨侧共享</a>
           <a className="button" href={`#/audit?target=${item.versionId}`}>
             版本审计
           </a>

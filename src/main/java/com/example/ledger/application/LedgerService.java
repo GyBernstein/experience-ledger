@@ -3,6 +3,7 @@ package com.example.ledger.application;
 import com.example.ledger.api.Requests.*;
 import com.example.ledger.domain.*;
 import com.example.ledger.infrastructure.Db;
+import com.example.ledger.judgment.JudgmentStore;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -15,8 +16,8 @@ import java.util.*;
 
 @Service
 public class LedgerService {
- private final Db db; private final Validator validator; private final MeterRegistry metrics;
- public LedgerService(Db db,Validator validator,MeterRegistry metrics){this.db=db;this.validator=validator;this.metrics=metrics;}
+ private final Db db; private final Validator validator; private final MeterRegistry metrics; private final JudgmentStore judgments;
+ public LedgerService(Db db,Validator validator,MeterRegistry metrics,JudgmentStore judgments){this.db=db;this.validator=validator;this.metrics=metrics;this.judgments=judgments;}
  public Map<String,Object> capture(ActorContext a,Capture r){
   if(r.extracted()!=null && !r.extracted().isObject())throw LedgerException.invalid("extracted must be an object");
   rejectPrivateFields(db.tree(r));
@@ -59,6 +60,7 @@ public class LedgerService {
  public Map<String,Object> review(ActorContext a,UUID id,Review r){a.requireGovernance();validateDraft(r.draft());return db.with(a,r.reason(),()->{
   var c=candidateInternal(a,id,true);checkRevision(c,r.expectedRevision());
   JsonNode old=(JsonNode)c.get("extracted_json");
+  judgments.check(old,r.draft(),(String)c.get("created_by_type"));
   ClaimRules.preserveOrigin(old.has("draft")?old.get("draft"):old,db.tree(r.draft()));
   var state=CandidateState.valueOf((String)c.get("status"));
   if(state==CandidateState.NEW){transition(a,id,state,CandidateState.ENRICHED);state=CandidateState.ENRICHED;}
@@ -74,6 +76,7 @@ public class LedgerService {
   JsonNode draftNode=((JsonNode)c.get("extracted_json")).path("draft");
   if(draftNode.isMissingNode()) throw LedgerException.invalid("Review a structured draft before verification");
   Draft draft=db.json.convertValue(draftNode,Draft.class); validateDraft(draft);
+  judgments.check((JsonNode)c.get("extracted_json"),draft,(String)c.get("created_by_type"));
   UUID family;UUID previous=null;int no=1;
   if("CREATE_NEW_FAMILY".equals(r.mode())){
    if(r.familyId()!=null || r.expectedSupersedesId()!=null)throw LedgerException.invalid("New family cannot supersede");
@@ -92,11 +95,12 @@ public class LedgerService {
   UUID version=UUID.randomUUID();
   var p=db.scoped(a,"id",version,"family",family,"no",no,"previous",previous,"title",draft.title(),"summary",draft.summary(),"problem",or(draft.problem(),""),
    "decision",or(draft.decision(),""),"action",or(draft.action(),""),"outcome",or(draft.outcomeSummary(),""),"lesson",draft.lesson(),"app",db.stringify(draft.applicability()),"constraints",db.stringify(draft.constraints()),
-   "from",draft.validFrom(),"to",draft.validTo(),"text",retrievalText(draft));
+   "from",draft.validFrom(),"to",draft.validTo(),"text",retrievalText(draft)+" "+judgments.retrievalText((JsonNode)c.get("extracted_json")));
   db.update("""
    insert into exp_experience_version(id,space_id,family_id,version_no,supersedes_id,title,summary,problem,decision,action,outcome_summary,lesson,applicability_json,constraints_json,valid_from,valid_to,retrieval_text,created_by_type,created_by)
    values(:id,:space,:family,:no,:previous,:title,:summary,:problem,:decision,:action,:outcome,:lesson,cast(:app as jsonb),cast(:constraints as jsonb),:from,:to,:text,:actorType,:actor)
    """,p);
+  judgments.seal(a,c,family,version);
   int sequence=0;
   for(ClaimInput claim:draft.claims()){
    UUID claimId=UUID.randomUUID();

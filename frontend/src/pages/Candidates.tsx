@@ -678,6 +678,7 @@ function ReviewEditor({
         <Badge value={candidate.status} />
         <span>r{candidate.revision}</span>
         <Id value={candidate.id} />
+        {candidate.extracted_json?.judgmentInput && <a className="button" href={`#/judgments/review/${candidate.id}`}>打开判断规则编辑器</a>}
         <button
           disabled={task.busy}
           className="text-button push-right"

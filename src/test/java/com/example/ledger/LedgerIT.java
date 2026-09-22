@@ -76,7 +76,7 @@ class LedgerIT {
   assertFalse((Boolean)db.one("select rolsuper from pg_roles where rolname=current_user",Map.of()).get("rolsuper"));
   assertEquals(0.0,((Number)db.one("select '[1,0,0]'::vector <=> '[1,0,0]'::vector as distance",Map.of()).get("distance")).doubleValue());
   assertTrue((Boolean)db.one("select to_tsvector('simple',ledger_fts_text('候选剪枝优化')) @@ plainto_tsquery('simple','剪枝') as ok",Map.of()).get("ok"));
-  assertEquals(3L,db.one("select count(*) as n from flyway_schema_history where success and type='SQL'",Map.of()).get("n"));return null;
+  assertEquals(4L,db.one("select count(*) as n from flyway_schema_history where success and type='SQL'",Map.of()).get("n"));return null;
  });}
  @Test void httpEndToEnd(){
   var headers=new HttpHeaders();headers.setBearerAuth(HUMAN_TOKEN);headers.setContentType(MediaType.APPLICATION_JSON);
@@ -171,4 +171,87 @@ class LedgerIT {
  @Test void mergeRetainsCandidateWithoutMutatingVersion(){var v=publish();var c=reviewed(draft());ledger.disposition(HUMAN,(UUID)c.get("id"),new Disposition(revision(c),"MERGED",(UUID)v.get("id"),null,"same lesson"));assertEquals("MERGED",ledger.candidate(HUMAN,(UUID)c.get("id")).get("status"));assertEquals(1,retrieval.history(HUMAN,(UUID)v.get("family_id")).size());}
  @Test void invalidationRetainsHistoryAndFeedbackCreatesCandidate(){var v=publish();var feedback=ledger.feedback(HUMAN,(UUID)v.get("id"),new Feedback("new failure condition",null));assertEquals("EVOLUTION",feedback.get("candidate_type"));ledger.invalidate(HUMAN,(UUID)v.get("id"),"no longer applicable");assertThrows(LedgerException.class,()->retrieval.get(HUMAN,(UUID)v.get("family_id"),null,null));assertEquals(1,retrieval.history(HUMAN,(UUID)v.get("family_id")).size());}
  void drainJobs(){for(int i=0;i<150 && worker.processOne(SPACE);i++){} }
+ @Autowired com.example.ledger.judgment.JudgmentService judgments;
+ @Autowired com.example.ledger.context.ContextGovernance governance;
+ @Autowired com.example.ledger.context.ContextService contexts;
+ com.example.ledger.judgment.JudgmentRequests.Save judgmentRequest(String domain,UUID evidence){
+  var rule=new com.example.ledger.judgment.JudgmentRequests.Rule("先核对工况","决定是否拆检","振动上升",List.of("负载改变了吗？"),"先排除工况变化，再判断轴承故障",List.of("不可超安全负载"),"误停机成本与漏检风险","比较同工况趋势","传感器失效时不能直接套用","新反例出现时重审","盲目换轴承无效",0.99,false);
+  return new com.example.ledger.judgment.JudgmentRequests.Save(rule,new com.example.ledger.judgment.JudgmentRequests.Gate(true,true,false,"先问工况再拆检"),domain,UUID.randomUUID().toString(),Instant.now().minusSeconds(1),null,db.tree(Map.of("assetType","pump")),db.tree(Map.of("maintenanceWindow",true)),evidence==null?List.of():List.of(evidence),UUID.randomUUID().toString(),null,null,null);
+ }
+ @SuppressWarnings("unchecked") Map<String,Object> judgmentCandidate(com.example.ledger.judgment.JudgmentRequests.Save r){return (Map<String,Object>)((Map<?,?>)judgments.save(HUMAN,null,r)).get("candidate");}
+ @SuppressWarnings("unchecked") Map<String,Object> publishJudgment(com.example.ledger.judgment.JudgmentRequests.Save r){var c=judgmentCandidate(r);return (Map<String,Object>)judgments.publish(HUMAN,(UUID)c.get("id"),new com.example.ledger.judgment.JudgmentRequests.Publish(revision(c),"human reviewed boundaries",null,null));}
+ UUID evidence(){return (UUID)ledger.createEvidence(HUMAN,new EvidenceInput("TEST_RESULT",null,null,db.tree(Map.of("result","load-normalized test")),null,null,Instant.now(),0.9,null)).get("id");}
+ @SuppressWarnings("unchecked") UUID policyFor(String domain){var rules=new com.example.ledger.context.ContextRequests.Rules(Set.of(domain),Set.of("diagnosis"),Set.of("HUMAN_ASSERTED","AGENT_DERIVED","OBSERVED"),12000,5,4,0.4,0.5,3650,false,false,false,false,50,100);return (UUID)((Map<String,Object>)governance.policy(HUMAN,null,new com.example.ledger.context.ContextRequests.Policy("judgment test",true,rules,null,"test"))).get("id");}
+ com.example.ledger.context.ContextRequests.Context contextRequest(String domain,UUID policy,int budget){return new com.example.ledger.context.ContextRequests.Context(domain,"diagnosis","pump","",db.tree(Map.of("maintenanceWindow",true)),budget,5,null,false,false,false,policy);}
+ JsonNode packet(String domain,UUID policy){return db.tree(contexts.context(HUMAN,contextRequest(domain,policy,12000)));}
+ UUID grant(UUID version,String mode,UUID prior,List<UUID> evidence){var result=db.tree(judgments.reuse(HUMAN,version,new com.example.ledger.judgment.JudgmentRequests.Reuse("AGENT",mode,mode.equals("CROSS_REUSABLE")?"TEST":"HUMAN_REVIEW","reviewed for pump diagnosis",evidence,prior)));return UUID.fromString(result.path("grant").path("id").asText());}
+ @Test void judgmentGateDoesNotPersistAndAgentCannotForgeHumanCard(){
+  long count=db.with(HUMAN,null,()->(Long)db.one("select count(*) n from exp_candidate where space_id=:space",db.scoped(HUMAN)).get("n"));
+  var good=judgmentRequest("gate",null);var rejected=new com.example.ledger.judgment.JudgmentRequests.Save(good.rule(),new com.example.ledger.judgment.JudgmentRequests.Gate(false,false,true,""),good.domain(),good.experienceKey(),good.validFrom(),null,good.applicability(),good.constraints(),List.of(),good.eventKey(),null,null,null);
+  assertFalse(db.tree(judgments.save(HUMAN,null,rejected)).path("saved").asBoolean());
+  assertEquals(count,db.with(HUMAN,null,()->(Long)db.one("select count(*) n from exp_candidate where space_id=:space",db.scoped(HUMAN)).get("n")));
+  var agent=new ActorContext(ActorContext.ActorType.AGENT,"coding-agent",SPACE);assertThrows(LedgerException.class,()->judgments.save(agent,null,good));
+  var headers=new HttpHeaders();headers.setBearerAuth(AGENT_TOKEN);headers.setContentType(MediaType.APPLICATION_JSON);
+  assertEquals(403,http.postForEntity("/api/v2/judgments/candidates",new HttpEntity<>(good,headers),JsonNode.class).getStatusCode().value());
+ }
+ @Test void humanJudgmentLifecycleSharingBudgetAndRevocation(){
+  String domain="judgment-"+UUID.randomUUID();UUID e=evidence();var request=judgmentRequest(domain,e);var c=judgmentCandidate(request);
+  assertEquals(c.get("id"),judgmentCandidate(request).get("id"));
+  UUID policy=policyFor(domain);assertTrue(packet(domain,policy).path("selected").isEmpty());
+  var v=(Map<?,?>)judgments.publish(HUMAN,(UUID)c.get("id"),new com.example.ledger.judgment.JudgmentRequests.Publish(revision(c),"confirm judgment",null,null));UUID id=(UUID)v.get("id");
+  assertTrue(packet(domain,policy).path("selected").isEmpty());
+  var detail=db.tree(judgments.detail(HUMAN,id));assertEquals("HUMAN",detail.path("sharing").path("native_track").asText());assertEquals(0.99,detail.path("judgmentRule").path("authorConfidence").asDouble());
+  var bindings=db.tree(governance.bindings(HUMAN));Integer bindingRevision=0;for(var b:bindings)if(b.path("actor_type").asText().equals("HUMAN")&&b.path("actor_id").asText().equals(HUMAN.actorId()))bindingRevision=b.path("revision").asInt();
+  governance.bind(HUMAN,new com.example.ledger.context.ContextRequests.Binding("HUMAN",HUMAN.actorId(),policy,true,bindingRevision,"test evidence permission"));
+  UUID first=grant(id,"CROSS_REFERENCE",null,List.of());var supplied=packet(domain,policy);assertEquals(1,supplied.path("selected").size());
+  assertEquals(0.5,supplied.path("selected").get(0).path("assessedConfidence").asDouble());
+  for(String expected:List.of("负载改变了吗","不可超安全负载","误停机成本","传感器失效","新反例","CROSS_REFERENCE","HUMAN_ASSERTED"))assertTrue(supplied.path("contextText").asText().contains(expected),expected);
+  assertEquals(supplied.path("contextText").asText().getBytes(java.nio.charset.StandardCharsets.UTF_8).length,supplied.path("budget").path("contextUnits").asInt());
+  assertTrue(db.tree(contexts.context(HUMAN,contextRequest(domain,policy,256))).path("selected").isEmpty());
+  var compact=(Map<?,?>)governance.createCompact(HUMAN,new com.example.ledger.context.ContextRequests.Compact("pump","short summary",domain,"diagnosis",id,List.of(id),"test"));governance.compactState(HUMAN,(UUID)compact.get("id"),true,"confirm");packet(domain,policy);
+  contexts.evidence(HUMAN,e,UUID.fromString(supplied.path("runId").asText()));
+  UUID revoked=grant(id,"NATIVE_ONLY",first,List.of());assertNotNull(revoked);var stopped=packet(domain,policy);assertTrue(stopped.path("selected").isEmpty());assertTrue(stopped.path("diagnostics").path("staleCompacts").asInt()>0);
+  assertThrows(LedgerException.class,()->grant(id,"CROSS_REFERENCE",first,List.of()));
+  assertThrows(LedgerException.class,()->contexts.evidence(HUMAN,e,UUID.fromString(supplied.path("runId").asText())));
+ }
+ @Test void crossReuseEvidenceCorrectionAndDatabaseAppendOnly(){
+  String domain="reuse-"+UUID.randomUUID();UUID id=(UUID)publishJudgment(judgmentRequest(domain,null)).get("id"),policy=policyFor(domain),e=evidence();
+  assertThrows(LedgerException.class,()->grant(id,"CROSS_REUSABLE",null,List.of()));UUID event=grant(id,"CROSS_REUSABLE",null,List.of(e));var supplied=packet(domain,policy);assertFalse(supplied.path("selected").isEmpty());assertEquals(e.toString(),supplied.path("selected").get(0).path("evidence").get(0).path("evidenceId").asText());
+  var noEvidence=new com.example.ledger.context.ContextRequests.Context(domain,"diagnosis","pump","",db.tree(Map.of("maintenanceWindow",true)),12000,0,null,false,false,false,policy);
+  assertTrue(db.tree(contexts.context(HUMAN,noEvidence)).path("selected").isEmpty());
+  ledger.correctEvidence(HUMAN,e,new EvidenceInput("TEST_RESULT",null,null,db.tree(Map.of("result","retracted")),null,null,Instant.now(),0.9,null),"test correction");assertTrue(packet(domain,policy).path("selected").isEmpty());
+  for(String table:List.of("exp_judgment_rule","exp_experience_track","exp_reuse_event","exp_reuse_evidence")){
+   assertThrows(RuntimeException.class,()->db.with(HUMAN,null,()->db.update("update "+table+" set id=id where space_id=:space",db.scoped(HUMAN))));
+   assertThrows(RuntimeException.class,()->db.with(HUMAN,null,()->db.update("delete from "+table+" where space_id=:space",db.scoped(HUMAN))));
+  }
+  assertThrows(RuntimeException.class,()->db.with(HUMAN,null,()->db.update("insert into exp_judgment_rule(id,space_id,experience_version_id,rule_json) values(:id,:space,:version,'{}')",db.scoped(HUMAN,"id",UUID.randomUUID(),"version",id))));
+  assertTrue(ledger.audit(HUMAN,event,20).size()>0);
+  var other=new ActorContext(ActorContext.ActorType.HUMAN,"other",UUID.randomUUID());assertThrows(LedgerException.class,()->judgments.detail(other,id));
+ }
+ @Test void supersessionRequiresNewSharingAndFamilyTrackCannotChange(){
+  String domain="evolution-"+UUID.randomUUID();var request=judgmentRequest(domain,null);var v=publishJudgment(request);UUID id=(UUID)v.get("id"),family=(UUID)v.get("family_id"),policy=policyFor(domain);grant(id,"CROSS_REFERENCE",null,List.of());
+  var next=judgmentCandidate(judgmentRequest(domain,null));var successor=(Map<?,?>)judgments.publish(HUMAN,(UUID)next.get("id"),new com.example.ledger.judgment.JudgmentRequests.Publish(revision(next),"new boundary",family,id));
+  assertTrue(packet(domain,policy).path("selected").isEmpty());assertThrows(LedgerException.class,()->grant(id,"CROSS_REFERENCE",null,List.of()));
+  var agent=new ActorContext(ActorContext.ActorType.AGENT,"coding-agent",SPACE);var c=ledger.capture(agent,captureRequest());c=ledger.review(HUMAN,(UUID)c.get("id"),new Review(revision(c),draft(),"review"));var reviewed=c;
+  assertThrows(LedgerException.class,()->ledger.verify(HUMAN,(UUID)reviewed.get("id"),new Verify("CREATE_NEW_VERSION",null,null,null,family,(UUID)successor.get("id"),revision(reviewed),"wrong track")));
+  assertEquals("VERIFIED",ledger.candidate(HUMAN,(UUID)next.get("id")).get("status"));
+ }
+ @Test void judgmentEditorCasAndDraftDivergenceAreRejected(){
+  var r=judgmentRequest("cas-"+UUID.randomUUID(),null);var c=judgmentCandidate(r);UUID id=(UUID)c.get("id");
+  assertThrows(LedgerException.class,()->judgments.save(HUMAN,id,r));
+  assertThrows(LedgerException.class,()->ledger.review(HUMAN,id,new Review(revision(c),draft(),"diverge")));
+  var edited=new com.example.ledger.judgment.JudgmentRequests.Save(r.rule(),r.gate(),r.domain(),r.experienceKey(),r.validFrom(),null,r.applicability(),r.constraints(),r.evidenceIds(),r.eventKey(),revision(c),null,null);
+  assertTrue(db.tree(judgments.save(HUMAN,id,edited)).path("saved").asBoolean());
+  assertThrows(LedgerException.class,()->judgments.publish(HUMAN,id,new com.example.ledger.judgment.JudgmentRequests.Publish(revision(c),"stale",null,null)));
+ }
+
+ @Test void agentNativeCaptureStaysAgentDespiteHumanPublication(){
+  var agent=new ActorContext(ActorContext.ActorType.AGENT,"coding-agent",SPACE);var request=captureRequest();
+  var c=ledger.capture(agent,new Capture(request.content(),null,"HUMAN",null,null,null,null,null,null,null));
+  c=ledger.review(HUMAN,(UUID)c.get("id"),new Review(revision(c),draft(),"human reviewed agent experience"));
+  String domain="agent-native-"+UUID.randomUUID();var v=ledger.verify(HUMAN,(UUID)c.get("id"),new Verify("CREATE_NEW_FAMILY",UUID.randomUUID().toString(),domain,"DECISION",null,null,revision(c),"accept"));
+  var detail=db.tree(judgments.detail(HUMAN,(UUID)v.get("id")));assertEquals("AGENT",detail.path("sharing").path("native_track").asText());
+  UUID policy=policyFor(domain);var ctx=new com.example.ledger.context.ContextRequests.Context(domain,"diagnosis",null,"",db.tree(Map.of("length",800,"gpuAvailable",false)),12000,5,null,false,false,false,policy);
+  assertEquals(1,db.tree(contexts.context(HUMAN,ctx)).path("selected").size());
+ }
 }

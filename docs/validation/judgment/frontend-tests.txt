@@ -1,0 +1,29 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> experience-ledger-frontend@1.0.0 test
+> node --import tsx --test tests/*.test.ts
+
+✔ Draft conversion preserves Agent provenance, evidence and only request fields (9.71149ms)
+✔ Observed claims require observation type and supporting evidence (3.638906ms)
+✔ Review cannot relabel identical Agent conclusions (1.22661ms)
+✔ Future activation and reversed validity intervals are rejected (4.706894ms)
+✔ Structured context rejects arrays and IDs reject injection (1.177424ms)
+✔ Allowed dispositions follow the actual backend states (0.531364ms)
+✔ Local date controls round trip to UTC at second precision (0.574032ms)
+✔ API preserves write payload, revision and same-origin authorization (12.735231ms)
+✔ Revision conflict exposes trace and does not retry mutations (2.265089ms)
+✔ Write network errors mark outcome uncertain and are never replayed (1.426001ms)
+✔ Unauthorized responses are actionable, HTML proxy responses are rejected (3.467131ms)
+✔ Query construction keeps Chinese reasons and separates query values (0.795548ms)
+✔ POST search failures do not imply an uncertain write (1.136804ms)
+✔ V2 context and feedback keep API version, identity and event key (3.121006ms)
+✔ Unsaved answers do not pass the retention gate (2.79219ms)
+✔ Sharing request keeps explicit mode and previous event for CAS (18.754078ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 853.534853

@@ -64,6 +64,13 @@ jobs:
           LEDGER_AGENT_TOKEN: local-agent-token-change-me
           LEDGER_URL: http://localhost:3000
         run: python3 scripts/agent_context_smoke.py
+      - name: Human judgment and Agent sharing contract
+        env:
+          LEDGER_TOKEN: local-human-token-change-me
+          LEDGER_AGENT_TOKEN: local-agent-token-change-me
+          LEDGER_URL: http://localhost:3000
+        working-directory: frontend
+        run: node --import tsx tests/judgment-api-smoke.ts
       - name: Context database guards
         run: |
           { echo "SET ROLE ledger_app;"; cat scripts/context_db_checks.sql; } | docker compose exec -T db psql -U postgres -d ledger -v ON_ERROR_STOP=1

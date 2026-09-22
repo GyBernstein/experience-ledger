@@ -593,8 +593,9 @@ export function ContextPage({ api }: Props) {
   return (
     <>
       <PageTitle eyebrow="MEMORY GATEWAY" title="上下文供给">
-        先校验范围与策略，再在预算中选择经验。只将 contextText 注入 Agent
-        上下文。
+        此页预览 Agent
+        受众。人的经验需先审核跨侧共享，再校验范围与策略并按预算选择。只将
+        contextText 注入 Agent 上下文。
       </PageTitle>
       <Messages a={a} />
       <form
@@ -740,6 +741,7 @@ export function ContextPage({ api }: Props) {
                   置信度 {s.assessedConfidence} · {s.units} 单位
                 </p>
                 <JsonView title="源版本引用" value={s.versionIds} />
+                <JsonView title="原生归属与跨侧共享授权" value={s.reuse} />
                 {s.evidence.map((e: Row) => (
                   <button
                     key={e.evidenceId}

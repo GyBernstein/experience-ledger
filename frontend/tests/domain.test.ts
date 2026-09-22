@@ -123,6 +123,20 @@ test("API preserves write payload, revision and same-origin authorization", asyn
   );
   assert.equal(calls, 1);
 });
+test("Transport is never called with the client as its receiver", async () => {
+  // Browsers brand-check fetch's receiver: invoking the stored reference as a
+  // method of the client throws Illegal invocation and sends no request at all.
+  let receiver: unknown;
+  const transport = function (this: unknown) {
+    receiver = this;
+    return Promise.resolve(new Response("[]", { status: 200 }));
+  } as unknown as typeof fetch;
+  await new LedgerApi("sample-token", transport).request("/candidates");
+  assert.ok(
+    !(receiver instanceof LedgerApi),
+    "native fetch would fail with Illegal invocation",
+  );
+});
 test("Revision conflict exposes trace and does not retry mutations", async () => {
   let calls = 0;
   const transport: typeof fetch = async () => {

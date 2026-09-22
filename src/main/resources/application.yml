@@ -1,3 +1,12 @@
+DB_PASSWORD: O6i1VyjYxc7CgSYkLpFC
+DB_URL: jdbc:postgresql://10.96.115.10:23563/ledger
+DB_USER: ledger_runtime
+DB_MIGRATION_USER: ledger_app
+DB_MIGRATION_PASSWORD: tltM0jK41LpI0IgyBegP8
+LEDGER_PRINCIPALS: '[{"token":"local-human-token-change-me","actorType":"HUMAN","actorId":"demo-reviewer","spaceId":"11111111-1111-1111-1111-111111111111"},{"token":"local-agent-token-change-me","actorType":"AGENT","actorId":"demo-agent","spaceId":"11111111-1111-1111-1111-111111111111"}]'
+
+
+
 spring:
   application:
     name: experience-ledger

@@ -11,6 +11,10 @@ export class ApiError extends Error {
   }
 }
 export const errorText: Record<string, string> = {
+  REUSE_REVISION_CONFLICT: "共享状态已被更新。请刷新并核对最新审核记录。",
+  CAPTURE_EVENT_CONFLICT: "同一采集标识的内容已变化，请查看原候选后再编辑。",
+  NATIVE_TRACK_IMMUTABLE: "原生归属不能在同一版本链中改变，请建立独立经验。",
+  SOURCE_NOT_CURRENT: "当前版本已经失效，不能新增共享授权。",
   UNAUTHORIZED: "凭证无效或已失效，请重新连接。",
   FORBIDDEN:
     "当前身份无权执行此操作。审核与发布需要 HUMAN 或 TRUSTED_WORKFLOW 身份。",
@@ -49,7 +53,10 @@ export class LedgerApi {
     if (signal?.aborted) controller.abort();
     const timer = setTimeout(cancel, this.timeoutMs);
     try {
-      const response = await this.transport(`/api/${version}${path}`, {
+      // Native fetch brand-checks its receiver: calling the stored reference as a
+      // method (`this.transport(...)`) throws Illegal invocation before the request
+      // is dispatched. Invoke it with the global receiver instead.
+      const response = await this.transport.call(globalThis, `/api/${version}${path}`, {
         method: body === undefined ? "GET" : "POST",
         headers: {
           Authorization: `Bearer ${this.token}`,

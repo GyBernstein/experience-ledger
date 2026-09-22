@@ -31,7 +31,13 @@ import {
   ContextPage,
   OperationsPage,
 } from "./pages/AgentContext";
+import {
+  JudgmentsPage,
+  JudgmentEditor,
+  JudgmentDetail,
+} from "./pages/Judgments";
 const navigation = [
+  ["/judgments", "人的判断库", BookOpen],
   ["/context", "上下文供给", Search],
   ["/compacts", "知识压缩", BookOpen],
   ["/policies", "检索策略", ClipboardCheck],
@@ -76,7 +82,7 @@ export default function App() {
       if (next === currentLocation.current) return;
       if (
         navigationGuard.dirty &&
-        !window.confirm("当前审核草稿尚未保存。确认离开并丢弃修改？")
+        !window.confirm("当前输入尚未保存。确认离开并丢弃修改？")
       ) {
         window.history.replaceState(null, "", `#${currentLocation.current}`);
         return;
@@ -100,7 +106,16 @@ export default function App() {
     setInput("");
   };
   let page: ReactNode;
-  if (path === "/context") page = <ContextPage api={api} />;
+  if (path === "/judgments") page = <JudgmentsPage api={api} />;
+  else if (path === "/judgments/new")
+    page = (
+      <JudgmentEditor api={api} sourceId={params.get("source") || undefined} />
+    );
+  else if (path.startsWith("/judgments/review/"))
+    page = <JudgmentEditor api={api} id={path.split("/")[3]} />;
+  else if (path.startsWith("/judgments/version/"))
+    page = <JudgmentDetail api={api} id={path.split("/")[3]} />;
+  else if (path === "/context") page = <ContextPage api={api} />;
   else if (path === "/compacts") page = <CompactPage api={api} />;
   else if (path === "/policies") page = <PolicyPage api={api} />;
   else if (path === "/operations") page = <OperationsPage api={api} />;

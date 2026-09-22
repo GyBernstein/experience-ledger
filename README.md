@@ -4,7 +4,9 @@ Java 21 / Spring Boot 4.1.1 / PostgreSQL 16 / pgvector 0.8.2 的模块化单体�
 
 实现 Candidate → Review → Version/Claim/Evidence → Retrieval → Usage/Outcome → Evolution Candidate → Supersession。默认无 LLM、无外部 Embedding，也能完成采集、人工审核与全文检索。配置 Embedding Provider 后启用混合检索。
 
-**当前升级验收见 `docs/spring-boot-4-verification.md`；V1 历史验收保留在 `docs/verification.md`。**
+**判断规则增量（不变更版本号）：** 新增「人的判断库」，支持保留检查、人工确认、按版本共享给 Agent 及撤回。设计与边界见 `docs/judgment-design.md`，覆盖部署见 `docs/judgment-overlay.md`，本次验证见 `docs/judgment-verification.md`。旧的人类经验需显式审核共享后才会进入 Agent Gateway。
+
+**此前 Spring Boot 升级验收见 `docs/spring-boot-4-verification.md`；V1 历史验收保留在 `docs/verification.md`。**
 
 ## V1.1 新增能力
 

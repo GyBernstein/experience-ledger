@@ -32,6 +32,7 @@ def publish(title,negative=False):
   except AssertionError as error:
    if 'CANDIDATE_REVISION_CONFLICT' not in str(error) or attempt==4:raise
  v=call('/api/v1/candidates/'+c['id']+'/verify',dict(mode='CREATE_NEW_FAMILY',experienceKey=uuid.uuid4().hex,domain=domain,experienceType='FAILURE' if negative else 'BEST_PRACTICE',expectedRevision=c['revision'],reason='test'))
+ call('/api/v2/versions/'+v['id']+'/reuse',dict(targetTrack='AGENT',mode='CROSS_REFERENCE',validationMethod='HUMAN_REVIEW',reason='reviewed cross-track reference',evidenceIds=[]))
  call('/api/v2/versions/'+v['id']+'/validations',dict(status='VERIFIED',assessedConfidence=.9,reason='engineer assessment'));return v,e
 v1,e1=publish('Inspect pump vibration');v2,e2=publish('Repeat pump measurement');v3,e3=publish('Avoid bearing replacement before eliminating sensor error',True)
 c=call('/api/v2/compacts',dict(title='Pump checks',summary='Verify sensor first. Repeat stable-load measurements.',domain=domain,taskType='equipment_diagnosis',representativeId=v1['id'],versionIds=[v1['id'],v2['id']],reason='reviewed cluster'))

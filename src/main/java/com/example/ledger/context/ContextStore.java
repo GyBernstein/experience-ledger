@@ -1,13 +1,14 @@
 package com.example.ledger.context;
 import com.example.ledger.domain.*;
 import com.example.ledger.infrastructure.Db;
+import com.example.ledger.judgment.JudgmentStore;
 import com.example.ledger.application.LedgerService;
 import tools.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
 import java.util.*;
 @Component
 public class ContextStore {
- final Db db;public ContextStore(Db db){this.db=db;}
+ final Db db;final JudgmentStore judgments;public ContextStore(Db db,JudgmentStore judgments){this.db=db;this.judgments=judgments;}
  public Map<String,Object> source(ActorContext a,UUID id){
   var r=db.one("""
    select v.id,v.family_id,v.title,v.summary,v.lesson,v.decision,v.action,v.outcome_summary,v.status,v.valid_from,v.valid_to,v.recorded_at,v.invalidated_at,
@@ -26,7 +27,7 @@ public class ContextStore {
    join exp_experience_claim c on c.space_id=ce.space_id and c.id=ce.claim_id
    where c.space_id=:space and c.experience_version_id=:id order by e.id,ce.support_type
    """,db.scoped(a,"id",id)));
-  r.put("disputed",!db.list("select id from exp_relation where space_id=:space and relation_type='CONTRADICTS' and (from_version_id=:id or to_version_id=:id) limit 1",db.scoped(a,"id",id)).isEmpty());return r;
+  r.put("disputed",!db.list("select id from exp_relation where space_id=:space and relation_type='CONTRADICTS' and (from_version_id=:id or to_version_id=:id) limit 1",db.scoped(a,"id",id)).isEmpty());judgments.attach(a,r);return r;
  }
  public String fingerprint(Map<String,Object> s){var m=new TreeMap<String,Object>(s);for(String k:List.of("is_current","usage_count","success_count","failure_count","partial_success_count","usableEvidence"))m.remove(k);return LedgerService.hash(db.stringify(m));}
  public Map<String,Object> policy(ActorContext a,UUID preview){
