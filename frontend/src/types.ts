@@ -48,7 +48,6 @@ export interface Candidate {
   source_ref?: string;
   created_at: string;
   episode_id?: string;
-  target_version_id?: string;
   extracted_json: Row;
   processing_status: string;
   processing_error?: string;
@@ -91,6 +90,74 @@ export interface SearchResult {
   candidatePoolPerLane: number;
   validAt: string;
   knownAt: string;
+}
+export interface AuthoringDraftContent {
+  title: string;
+  summary: string;
+  problem: string;
+  context: string;
+  rootCause: string;
+  decision: string;
+  actions: string[];
+  outcome: string;
+  lesson: string;
+  reusablePrinciple: string;
+  applicability: string[];
+  boundaryConditions: string[];
+  constraints: string[];
+  alternatives: string[];
+  tradeoffs: string[];
+  claims: Row[];
+  evidenceMappings: Row[];
+  missingInformation: { field: string; message: string }[];
+  possibleCounterExamples: string[];
+  tags: string[];
+  domain: string;
+  taskType: string;
+  confidence: Row;
+}
+export interface AuthoringDraft {
+  id: string;
+  candidateId: string;
+  draftVersion: number;
+  status: string;
+  provider: string;
+  model: string;
+  promptCode: string;
+  promptVersion: number;
+  revisionSource: string;
+  revisionInstruction?: string;
+  errorSummary?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  estimatedCost?: number;
+  createdAt: string;
+  missingCount: number;
+  structuredContent: AuthoringDraftContent;
+  candidate?: Candidate;
+  history?: Row[];
+  similar?: Row[];
+  diff?: Row[];
+}
+export interface ReviewInboxItem {
+  id: string;
+  candidateId: string;
+  draftVersion: number;
+  status: string;
+  title: string;
+  summary: string;
+  domain: string;
+  taskType: string;
+  confidence: number;
+  missingCount: number;
+  captureChannel: string;
+  agentRole?: string;
+  sourceType: string;
+  sourceRef?: string;
+  provider: string;
+  model: string;
+  error?: string;
+  createdAt: string;
 }
 export const experienceTypes = [
   "BEST_PRACTICE",

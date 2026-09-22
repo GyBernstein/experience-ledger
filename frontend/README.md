@@ -66,8 +66,8 @@ npm run preview
 
 | 页面 | 用户可以做什么 |
 |---|---|
-| 采集经验 | 文本录入经验；可选记录过程 Episode、来源和已有结构化信息 |
-| 候选审核 | 状态筛选、读取原文、编辑 Claim 和证据引用、保存草稿、新经验/后继版本发布、合并/拒绝/重复/过期 |
+| AI 采集 | 只输入原始事实/对话/日志；Ledger 自动生成结构化 Draft、Claim 和信息缺口 |
+| 审核工作箱 | Human/Agent 草稿筛选、原文/草稿双栏核对、自然语言修订、手工微调、Diff、拒绝或显式发布 |
 | 经验检索 | 关键词、领域、类型、上下文、双时态筛选；查看匹配依据 |
 | 经验详情 | 历史链、正文、Claim、证据、过程、矛盾提醒、统计；创建演进候选、版本关系和撤销 |
 | 证据记录 | 按 ID 查询；文字或 JSON 录入；创建替代证据进行更正 |
@@ -123,7 +123,8 @@ npm run test:api
 - `src/App.tsx`：内存凭证、工作台布局与 Hash 路由。
 - `src/api.ts`：同源请求、错误码、超时及“结果不确定”提示。
 - `src/domain.ts`：Draft 转换、来源与证据预校验、时区转换。
-- `src/pages/Candidates.tsx`：采集、列表、审核。
+- `src/pages/Authoring.tsx`：V1.2 AI 采集、Review Inbox、Draft 修订与发布。
+- `src/pages/Candidates.tsx`：V1 兼容工作流（不再作为主导航入口）。
 - `src/pages/Experiences.tsx`：检索、历史、反馈和治理。
 - `src/pages/AgentContext.tsx`：策略绑定、Compact、上下文试验和运营。
 - `src/pages/Records.tsx`：证据、使用、结果和审计。

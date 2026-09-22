@@ -1,12 +1,3 @@
-DB_PASSWORD: O6i1VyjYxc7CgSYkLpFC
-DB_URL: jdbc:postgresql://10.96.115.10:23563/ledger
-DB_USER: ledger_runtime
-DB_MIGRATION_USER: ledger_app
-DB_MIGRATION_PASSWORD: tltM0jK41LpI0IgyBegP8
-LEDGER_PRINCIPALS: '[{"token":"local-human-token-change-me","actorType":"HUMAN","actorId":"demo-reviewer","spaceId":"11111111-1111-1111-1111-111111111111"},{"token":"local-agent-token-change-me","actorType":"AGENT","actorId":"demo-agent","spaceId":"11111111-1111-1111-1111-111111111111"}]'
-
-
-
 spring:
   application:
     name: experience-ledger
@@ -21,7 +12,6 @@ spring:
     user: ${DB_MIGRATION_USER:ledger_owner}
     password: ${DB_MIGRATION_PASSWORD:}
   jackson:
-    use-jackson2-defaults: true
     deserialization:
       fail-on-unknown-properties: true
 server:
@@ -40,6 +30,19 @@ management:
     health:
       show-details: never
 ledger:
+  product-version: 1.2.0
+  ai:
+    enabled: ${LEDGER_AI_ENABLED:false}
+    provider: ${LEDGER_AI_PROVIDER:local}
+    url: ${LEDGER_AI_URL:}
+    api-key: ${LEDGER_AI_API_KEY:}
+    model: ${LEDGER_AI_MODEL:}
+    temperature: ${LEDGER_AI_TEMPERATURE:0.2}
+    retry:
+      max-attempts: ${LEDGER_AI_MAX_ATTEMPTS:2}
+    timeout:
+      connect-seconds: ${LEDGER_AI_CONNECT_TIMEOUT_SECONDS:5}
+      read-seconds: ${LEDGER_AI_READ_TIMEOUT_SECONDS:120}
   security:
     principals: ${LEDGER_PRINCIPALS:[]}
   worker:

@@ -23,7 +23,7 @@ import {
 import { LedgerApi } from "./api";
 import { ErrorBox, Field, useAction, navigationGuard } from "./components/ui";
 import { SearchPage, ExperiencePage } from "./pages/Experiences";
-import { CapturePage, CandidatesPage, ReviewPage } from "./pages/Candidates";
+import { CapturePageV12, ReviewInboxPage, DraftReviewPage } from "./pages/Authoring";
 import { EvidencePage, UsagePage, AuditPage } from "./pages/Records";
 import {
   PolicyPage,
@@ -31,20 +31,14 @@ import {
   ContextPage,
   OperationsPage,
 } from "./pages/AgentContext";
-import {
-  JudgmentsPage,
-  JudgmentEditor,
-  JudgmentDetail,
-} from "./pages/Judgments";
 const navigation = [
-  ["/judgments", "人的判断库", BookOpen],
   ["/context", "上下文供给", Search],
   ["/compacts", "知识压缩", BookOpen],
   ["/policies", "检索策略", ClipboardCheck],
   ["/operations", "Agent 运营", ScrollText],
   ["/search", "经验检索", Search],
-  ["/capture", "采集经验", Plus],
-  ["/review", "候选审核", ClipboardCheck],
+  ["/capture", "AI 采集", Plus],
+  ["/review", "审核工作箱", ClipboardCheck],
   ["/evidence", "证据记录", Fingerprint],
   ["/usage", "使用与反馈", Repeat2],
   ["/audit", "审计日志", ScrollText],
@@ -82,7 +76,7 @@ export default function App() {
       if (next === currentLocation.current) return;
       if (
         navigationGuard.dirty &&
-        !window.confirm("当前输入尚未保存。确认离开并丢弃修改？")
+        !window.confirm("当前审核草稿尚未保存。确认离开并丢弃修改？")
       ) {
         window.history.replaceState(null, "", `#${currentLocation.current}`);
         return;
@@ -106,16 +100,7 @@ export default function App() {
     setInput("");
   };
   let page: ReactNode;
-  if (path === "/judgments") page = <JudgmentsPage api={api} />;
-  else if (path === "/judgments/new")
-    page = (
-      <JudgmentEditor api={api} sourceId={params.get("source") || undefined} />
-    );
-  else if (path.startsWith("/judgments/review/"))
-    page = <JudgmentEditor api={api} id={path.split("/")[3]} />;
-  else if (path.startsWith("/judgments/version/"))
-    page = <JudgmentDetail api={api} id={path.split("/")[3]} />;
-  else if (path === "/context") page = <ContextPage api={api} />;
+  if (path === "/context") page = <ContextPage api={api} />;
   else if (path === "/compacts") page = <CompactPage api={api} />;
   else if (path === "/policies") page = <PolicyPage api={api} />;
   else if (path === "/operations") page = <OperationsPage api={api} />;
@@ -128,17 +113,9 @@ export default function App() {
         initialVersion={params.get("version") || undefined}
       />
     );
-  else if (path === "/capture") page = <CapturePage api={api} />;
-  else if (path.startsWith("/review/"))
-    page = (
-      <ReviewPage
-        api={api}
-        id={path.split("/")[2]}
-        familyId={params.get("family") || ""}
-        previousId={params.get("previous") || ""}
-      />
-    );
-  else if (path === "/review") page = <CandidatesPage api={api} />;
+  else if (path === "/capture") page = <CapturePageV12 api={api} />;
+  else if (path.startsWith("/drafts/")) page = <DraftReviewPage api={api} id={path.split("/")[2]} />;
+  else if (path === "/review") page = <ReviewInboxPage api={api} />;
   else if (path === "/evidence")
     page = <EvidencePage api={api} initialId={params.get("id") || ""} />;
   else if (path === "/usage")
@@ -185,7 +162,7 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-note">
-          <span className="edition">V1 / EXPERIENCE MEMORY</span>
+          <span className="edition">V1.2 / AI-ASSISTED</span>
           <p>记录依据，保留演进。</p>
           <div>Frozen Specification</div>
         </div>

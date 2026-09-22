@@ -1,14 +1,25 @@
-# Experience Ledger V1.1 · Agent Context
+# Experience Ledger V1.2 · AI-assisted Experience Curation
 
-Java 21 / Spring Boot 4.1.1 / PostgreSQL 16 / pgvector 0.8.2 的模块化单体。以项目所有者提供的 Frozen Specification 为最高优先级；冻结决策和冲突处理见 `docs/implementation-plan.md`。两份原始设计文档不进入公开仓库，来源校验值见 `docs/specification-basis.md`。
+Java 21 / Spring Boot 4.1.1 / PostgreSQL 16 / pgvector 0.8.2 的模块化单体。以项目所有者提供的 Frozen Specification 为最高优先级；双时态、Supersession、Evidence、Observed/Derived 和 Append-only Audit 继续作为不可破坏的底座。
 
-实现 Candidate → Review → Version/Claim/Evidence → Retrieval → Usage/Outcome → Evolution Candidate → Supersession。默认无 LLM、无外部 Embedding，也能完成采集、人工审核与全文检索。配置 Embedding Provider 后启用混合检索。
+V1.2 将写入主链路调整为 Raw Input → Candidate → AI Draft → Human Review → Version/Claim/Evidence。原始 Candidate 永不被草稿覆盖，AI 输出不自动发布；默认 `local-safe` Provider 会生成保守草稿，配置 OpenAI-compatible/Ollama 后启用完整语义提炼与自然语言修订。
 
-**判断规则增量（不变更版本号）：** 新增「人的判断库」，支持保留检查、人工确认、按版本共享给 Agent 及撤回。设计与边界见 `docs/judgment-design.md`，覆盖部署见 `docs/judgment-overlay.md`，本次验证见 `docs/judgment-verification.md`。旧的人类经验需显式审核共享后才会进入 Agent Gateway。
+**交付验收状态请先看 `docs/verification.md`。代码实现、补充环境验证、真实 PostgreSQL 并发验收分开记录。**
 
-**此前 Spring Boot 升级验收见 `docs/spring-boot-4-verification.md`；V1 历史验收保留在 `docs/verification.md`。**
+## V1.2 新增能力
 
-## V1.1 新增能力
+- Human / Agent / External 统一 Capture，Agent 无需理解内部表结构；
+- Candidate 与 Draft 分离，AI 修订和人工修改都产生新的 Draft Version；
+- 可插拔 `DraftAssistProvider`，支持 OpenAI-compatible 与 Ollama 地址；
+- Prompt 模板入库并记录版本，LLM 调用记录 Token、成本、延迟与错误；
+- JSON 结构校验、一次修复、失败保留 Candidate，不允许伪造 Evidence；
+- Review Inbox、原文/草稿双栏审核、自然语言修订、字段 Diff；
+- 人工接受后生成 Experience/Claim/Evidence 映射及 L0/L1/L2 摘要；
+- Agent 只能提交 Candidate/Draft，不能读取草稿或自行发布。
+
+完整设计、配置与 API 示例见 `docs/ai-authoring-v1.2.md`。
+
+## V1.1 能力继续保留
 
 策略与身份绑定、独立验证/置信度、同范围 Compact、预算/反例/证据约束、幂等反馈及运营统计。前端保留终端用户录入，新增「上下文供给」「知识压缩」「检索策略」「Agent 运营」。
 
@@ -16,18 +27,6 @@ Java 21 / Spring Boot 4.1.1 / PostgreSQL 16 / pgvector 0.8.2 的模块化单体�
 - `docs/agent-context-api.md`：V2 Gateway 和管理 API。
 - `docs/agent-context-guide.md`：启动、升级和业务操作。
 - `docs/agent-context-verification.md`：本次验证结果与待验收项。
-
-## Windows / IDEA 本地运行
-
-附件中 localhost:5432 连接被拒的问题已补充本地开发配置。启动 Docker Desktop 后执行：
-
-```powershell
-.\scripts\start-local.ps1 -DatabaseOnly
-```
-
-在 IDEA 激活 `local` profile，Working directory 设置为项目根目录，再启动 LedgerApplication；数据库默认为 `127.0.0.1:15432`。首次应用启动完成 Flyway 后执行 `.\scripts\initialize-local-space.ps1`。脚本会从 Compose 配置生成本地连接与凭证，不需要 IDEA 自动读取 `.env`。
-
-Spring Boot 已升级至 **4.1.1**，保持 JDK21。Maven Reload 后先执行 `mvn clean test`。详细修复、已有数据库接入和密码问题见 `docs/spring-boot-4-upgrade.md`；本次验证见 `docs/spring-boot-4-verification.md`。
 
 ## 快速启动
 
@@ -79,7 +78,7 @@ python scripts/seed_demo.py
 mvn test          # 领域单元测试，不需要数据库
 mvn verify        # 使用 Testcontainers 自动启动真实 PostgreSQL + pgvector；需要 Docker
 mvn package -DskipTests
-java -jar target/experience-ledger-1.0.0.jar
+java -jar target/experience-ledger-*.jar
 ```
 
 也可以完全在 Docker 中运行完整测试：
@@ -94,7 +93,7 @@ docker compose --profile test run --rm tests
 
 ## 接入方式
 
-1. 为 Agent 配置独立 `AGENT` 凭证，通过 `/candidates/capture` 提交可审计摘要。
+1. 为 Agent 配置独立 `AGENT` 凭证，通过 `/api/v2/capture/agent` 提交 Task/Context/Result/Outcome，自动形成待审核 Draft。
 2. 为审核人配置 `HUMAN` 凭证，完成 review / verify。一个凭证只绑定一个 Actor 和 Space。
 3. 人员配置策略并绑定身份，Agent 通过 `/api/v2/context` 获取预算内上下文，通过 `/api/v2/evidence/{id}?runId=...` 下钻证据。
 4. Agent 通过 `/api/v2/feedback` 幂等报告采用与结果，人员复核后决定是否形成 Evolution Candidate。

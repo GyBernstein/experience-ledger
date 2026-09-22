@@ -11,10 +11,6 @@ export class ApiError extends Error {
   }
 }
 export const errorText: Record<string, string> = {
-  REUSE_REVISION_CONFLICT: "共享状态已被更新。请刷新并核对最新审核记录。",
-  CAPTURE_EVENT_CONFLICT: "同一采集标识的内容已变化，请查看原候选后再编辑。",
-  NATIVE_TRACK_IMMUTABLE: "原生归属不能在同一版本链中改变，请建立独立经验。",
-  SOURCE_NOT_CURRENT: "当前版本已经失效，不能新增共享授权。",
   UNAUTHORIZED: "凭证无效或已失效，请重新连接。",
   FORBIDDEN:
     "当前身份无权执行此操作。审核与发布需要 HUMAN 或 TRUSTED_WORKFLOW 身份。",
@@ -22,6 +18,10 @@ export const errorText: Record<string, string> = {
     "候选已被更新。请先保留你的草稿，重新加载候选并核对，再保存。",
   VERSION_CONFLICT: "经验版本链已变化。请重新查看最新版本后再决定如何合并。",
   CANDIDATE_STATE_CONFLICT: "候选状态已变化，当前操作不可执行。请刷新候选。",
+  DRAFT_REVISION_CONFLICT: "草稿已产生新版本，请重新加载后再操作。",
+  DRAFT_SCHEMA_INVALID: "AI 返回的草稿结构不完整，请重新生成或手工修订。",
+  LLM_NOT_CONFIGURED: "尚未配置 LLM，当前只能使用保守的本地草稿。",
+  LLM_INVOCATION_FAILED: "LLM 调用失败，原始记录已保留，可稍后重新生成。",
   CONSTRAINT_VIOLATION:
     "提交内容与数据约束冲突，请检查关联 ID、状态和必填字段。",
   NOT_FOUND: "当前空间内找不到该记录。",
