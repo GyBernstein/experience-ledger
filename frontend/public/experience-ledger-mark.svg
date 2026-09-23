@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Experience Ledger</title>
+  <rect x="2" y="2" width="60" height="60" rx="17" fill="#112037"/>
+  <path d="M14 40 28.5 17 36 29 41 21.5 51 40" fill="none" stroke="#ECF6F6" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M17.5 45.5h29" fill="none" stroke="#49D0C4" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M22.5 51.5h24" fill="none" stroke="#49D0C4" stroke-width="3.2" stroke-linecap="round" opacity=".78"/>
+  <path d="M27.5 57h14" fill="none" stroke="#49D0C4" stroke-width="3.2" stroke-linecap="round" opacity=".56"/>
+</svg>
