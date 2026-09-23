@@ -12,7 +12,8 @@ import tools.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.*;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.context.annotation.*;
 import org.springframework.http.*;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -26,6 +27,7 @@ import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureTestRestTemplate
 @Import(LedgerIT.Providers.class)
 class LedgerIT {
  static PostgreSQLContainer<?> container;
@@ -112,7 +114,7 @@ class LedgerIT {
   assertEquals(2L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_claim_evidence ce join exp_experience_claim c on c.space_id=ce.space_id and c.id=ce.claim_id where ce.space_id=:space and c.experience_version_id=:version and ce.support_type='CONTEXT'",db.scoped(HUMAN,"version",version)).get("n")));
  }
  @Test void httpEndToEnd(){
-  var headers=new HttpHeaders();headers.setBearerAuth(HUMAN_TOKEN);headers.setContentType(MediaType.APPLICATION_JSON);
+  var headers=new HttpHeaders();headers.setBearerAuth(HUMAN_TOKEN);headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
   var response=http.postForEntity("/api/v1/candidates/capture",new HttpEntity<>(captureRequest(),headers),JsonNode.class);assertEquals(HttpStatus.OK,response.getStatusCode(),Objects.toString(response.getBody()));
   UUID cid=UUID.fromString(response.getBody().path("id").asText());
   var review=http.postForEntity("/api/v1/candidates/"+cid+"/review",new HttpEntity<>(new Review(response.getBody().path("revision").asInt(),draft(),"review"),headers),JsonNode.class);assertEquals(200,review.getStatusCode().value());
