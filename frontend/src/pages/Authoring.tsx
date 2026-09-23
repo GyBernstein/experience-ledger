@@ -372,7 +372,30 @@ function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft
             <div className="publish-box">
               <div><b>确认后写入组织经验</b><p>发布将生成 Experience、Claim、Evidence 关系以及 L0/L1/L2 摘要。</p></div>
               <select value={type} onChange={(e) => setType(e.target.value)}><SelectOptions values={experienceTypes} /></select>
-              <button type="button" className="primary" onClick={() => void task.run(async () => { if (dirty) throw new Error("请先保存手工修改，再发布当前 Draft Version"); const result = await api.v2<Row>(`/drafts/${draft.id}/accept`, { expectedDraftVersion: draft.draftVersion, mode: "CREATE_NEW_FAMILY", domain: doc.domain || "general", experienceType: type, reason }); setPublished(result.experience); setDraft((x) => ({ ...x, status: "ACCEPTED" })); navigationGuard.dirty = false; task.setMessage("正式经验已发布，原始 Candidate 与 Draft 版本链均已保留。"); })}><Check size={17} />接受并发布</button>
+              <button type="button" className="primary" disabled={task.busy || terminal} onClick={() => void task.run(async () => {
+                let publishDraft = draft;
+                if (dirty) {
+                  task.setMessage("正在保存手工修改…");
+                  publishDraft = await api.v2<AuthoringDraft>(`/drafts/${draft.id}/edit`, {
+                    expectedDraftVersion: draft.draftVersion,
+                    structuredContent: content(),
+                    reason,
+                  });
+                  replace(publishDraft);
+                }
+                task.setMessage("正在发布正式经验…");
+                const result = await api.v2<Row>(`/drafts/${publishDraft.id}/accept`, {
+                  expectedDraftVersion: publishDraft.draftVersion,
+                  mode: "CREATE_NEW_FAMILY",
+                  domain: publishDraft.structuredContent.domain || "general",
+                  experienceType: type,
+                  reason,
+                });
+                setPublished(result.experience);
+                setDraft((x) => ({ ...x, status: "ACCEPTED" }));
+                navigationGuard.dirty = false;
+                task.setMessage("正式经验已发布，原始 Candidate 与 Draft 版本链均已保留。");
+              })}><Check size={17} />{task.busy ? "正在处理…" : dirty ? "保存修改并发布" : "接受并发布"}</button>
               <button type="button" className="danger" onClick={() => void task.run(async () => { if (!window.confirm("拒绝后仍保留 Candidate 与 Draft 审计记录。继续？")) return; await api.v2(`/drafts/${draft.id}/reject`, { expectedDraftVersion: draft.draftVersion, reason }); go("/review"); })}><X size={17} />拒绝</button>
             </div>
           </fieldset>
