@@ -48,6 +48,7 @@ export interface Candidate {
   source_ref?: string;
   created_at: string;
   episode_id?: string;
+  target_version_id?: string;
   extracted_json: Row;
   processing_status: string;
   processing_error?: string;
