@@ -134,7 +134,7 @@ export default function App() {
       <aside className="sidebar">
         <a className="brand" href="#/search">
           <span className="brand-mark">
-            <BookOpen size={23} />
+            <img src="/experience-ledger-mark.svg" alt="" />
           </span>
           <span>
             Experience
