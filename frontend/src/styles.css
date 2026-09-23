@@ -240,13 +240,16 @@ small,
 }
 .brand-mark {
   width: 42px;
-  height: 45px;
-  background: #1b4e5e;
+  height: 42px;
   display: grid;
   place-items: center;
-  border: 1px solid #346273;
-  border-radius: 10px;
-  color: #9ce6e1;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.brand-mark img {
+  display: block;
+  width: 42px;
+  height: 42px;
 }
 .sidebar-label {
   font-size: 0.8125rem;
