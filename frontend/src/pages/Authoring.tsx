@@ -317,6 +317,8 @@ function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft
   const [advanced, setAdvanced] = useState(() => pretty({ claims: doc.claims, evidenceMappings: doc.evidenceMappings }));
   const [dirty, setDirty] = useState(false);
   const [published, setPublished] = useState<Row>();
+  const [relatedFamily, setRelatedFamily] = useState("");
+  const [problemRelation, setProblemRelation] = useState("ALTERNATIVE_CAUSE");
   const task = useAction();
   const terminal = ["ACCEPTED", "REJECTED"].includes(draft.status);
   useEffect(() => { navigationGuard.dirty = dirty; return () => { navigationGuard.dirty = false; }; }, [dirty]);
@@ -325,7 +327,7 @@ function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft
     setAdvanced(pretty({ claims: next.structuredContent.claims, evidenceMappings: next.structuredContent.evidenceMappings }));
     setDirty(false); navigationGuard.dirty = false;
   };
-  const edit = (patch: Partial<AuthoringDraftContent>) => { setDoc((x) => ({ ...x, ...patch })); setDirty(true); };
+  const edit = (patch: Partial<AuthoringDraftContent>) => { setDoc((x) => ({ ...x, ...patch })); setDirty(true); setRelatedFamily(""); };
   const content = () => {
     const parsed = JSON.parse(advanced || "{}");
     if (!Array.isArray(parsed.claims) || !Array.isArray(parsed.evidenceMappings)) throw new Error("Claims / Evidence Mapping 必须是 JSON 数组");
@@ -349,7 +351,7 @@ function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft
           <div className="section-heading"><h2>原始输入</h2><Badge value={draft.candidate?.source_type || "SOURCE"} /></div>
           <div className="raw-source">{draft.candidate?.raw_content}</div>
           <details><summary>草稿版本历史</summary><JsonView value={draft.history || []} /></details>
-          {!!draft.similar?.length && <div className="similar-block"><h3>可能相似的经验</h3>{draft.similar.map((x) => <a key={x.version_id} href={`#/experiences/${x.family_id}`}>{x.title}</a>)}</div>}
+          {!!draft.similar?.length && <div className="similar-block"><h3>系统发现的关联案例</h3>{draft.similar.map((x) => <div key={x.version_id}><a href={`#/experiences/${x.family_id}`} target="_blank" rel="noreferrer">{x.title}</a><p className="micro">{x.matchReason} · 根因：{x.root_cause || "尚未确认"}{x.group_title ? ` · 问题组：${x.group_title}` : ""}</p></div>)}</div>}
         </aside>
         <main className="panel draft-pane">
           <fieldset disabled={terminal || task.busy || draft.status === "GENERATION_FAILED"}>
@@ -372,6 +374,17 @@ function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft
               <button type="button" onClick={() => void task.run(async () => { const next = await api.v2<AuthoringDraft>(`/drafts/${draft.id}/regenerate`, { expectedDraftVersion: draft.draftVersion, reason: "human requested regeneration" }); continueWith(next, "已重新生成完整草稿，旧版本仍可追溯。"); })}><RefreshCw size={16} />重新生成</button>
             </div>
             <div className="revision-chat"><MessageSquareText size={20} /><div><b>告诉 AI 你想怎么改</b><textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} placeholder="例如：不要把 Reactor 写成唯一根因；把它改为优先排查项，并补充适用边界。" /></div><button type="button" className="primary" disabled={!instruction.trim()} onClick={() => void task.run(async () => { const next = await api.v2<AuthoringDraft>(`/drafts/${draft.id}/revise`, { instruction, expectedDraftVersion: draft.draftVersion }); continueWith(next, "AI 已生成新的草稿版本，请核对变更。"); })}><Sparkles size={16} />生成修订</button></div>
+            <div className="panel problem-link-picker">
+              <h3>与已有问题的关系</h3>
+              <p className="micro">每次发布都保留独立经验和证据。系统仅推荐关联，不会自动覆盖已有原因。</p>
+              <label><input type="radio" name="relatedFamily" checked={!relatedFamily} onChange={() => setRelatedFamily("")} /> 独立发布，暂不归组</label>
+              {draft.similar?.map((item) => <label key={item.family_id}>
+                <input type="radio" name="relatedFamily" value={item.family_id} checked={relatedFamily === item.family_id} onChange={() => setRelatedFamily(item.family_id)} />
+                同一问题：{item.title}（已有根因：{item.root_cause || "待确认"}）
+              </label>)}
+              {relatedFamily && <Field label="本次和已有经验的关系"><select value={problemRelation} onChange={(event) => setProblemRelation(event.target.value)}><option value="ALTERNATIVE_CAUSE">另一种原因及处理方法</option><option value="SAME_CAUSE_CASE">相同原因的独立案例</option></select></Field>}
+              {!draft.similar?.length && <p className="micro">尚无相近案例；照常发布，之后仍可在经验详情页归组。</p>}
+            </div>
             <div className="publish-box">
               <div><b>确认后写入组织经验</b><p>发布将生成 Experience、Claim、Evidence 关系以及 L0/L1/L2 摘要。</p></div>
               <select value={type} onChange={(e) => setType(e.target.value)}><SelectOptions values={experienceTypes} /></select>
@@ -393,6 +406,8 @@ function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft
                   domain: publishDraft.structuredContent.domain || "general",
                   experienceType: type,
                   reason,
+                  relatedFamilyId: relatedFamily || undefined,
+                  problemRelation: relatedFamily ? problemRelation : undefined,
                 });
                 setPublished(result.experience);
                 setDraft((x) => ({ ...x, status: "ACCEPTED" }));

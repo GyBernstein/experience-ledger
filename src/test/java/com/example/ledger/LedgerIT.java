@@ -63,7 +63,7 @@ class LedgerIT {
   volatile boolean fail;
   public JsonNode enrich(Candidate c,CaptureContext context){if(fail)throw new IllegalStateException("offline");return c.extracted();}
  }
- @Autowired Db db;@Autowired LedgerService ledger;@Autowired RetrievalService retrieval;@Autowired ProcessingWorker worker;@Autowired AuthoringService authoring;
+ @Autowired Db db;@Autowired LedgerService ledger;@Autowired RetrievalService retrieval;@Autowired ProcessingWorker worker;@Autowired AuthoringService authoring;@Autowired ProblemGroupService problemGroups;
  @Autowired ToggleEmbedding embedding;@Autowired ToggleEnrichment enrichment;@Autowired TestRestTemplate http;
  @BeforeEach void seedSpace(){embedding.mode="disabled";enrichment.fail=false;db.with(HUMAN,"test setup",()->{db.update("insert into exp_space(id,name) values(:space,'test') on conflict do nothing",db.scoped(HUMAN));return null;});}
  Capture captureRequest(){return new Capture("pruning candidates reduced utilization 剪枝",null,"TEST","test",UUID.randomUUID().toString(),"COMPLETED",null,null,null,null);}
@@ -92,6 +92,28 @@ class LedgerIT {
   assertNotNull(((Map<?,?>)result.get("experience")).get("id"));assertEquals("ACCEPTED",authoring.draft(HUMAN,draftId).get("status"));
   assertEquals(1L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_draft_publication where space_id=:space and draft_id=:id",db.scoped(HUMAN,"id",draftId)).get("n")));
   assertEquals(1L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_claim_evidence ce join exp_experience_claim c on c.space_id=ce.space_id and c.id=ce.claim_id where ce.space_id=:space and c.experience_version_id=:version and ce.support_type='CONTEXT'",db.scoped(HUMAN,"version",((Map<?,?>)result.get("experience")).get("id"))).get("n")));
+ }
+ @Test void sameProblemDifferentCausesRemainIndependentAndGroupingCanBeReversed(){
+  UUID first=authoringCause("BOM 未覆盖",null);
+  UUID second=authoringCause("仓库未发布构件",first);
+  assertNotEquals(first,second);
+  var group=problemGroups.byFamily(HUMAN,second);
+  assertEquals(2,((List<?>)group.get("members")).size());
+  assertEquals(group.get("id"),problemGroups.byFamily(HUMAN,first).get("id"));
+  assertEquals("VERIFIED",retrieval.get(HUMAN,first,null,null).get("status"));
+  assertEquals("VERIFIED",retrieval.get(HUMAN,second,null,null).get("status"));
+  problemGroups.unlink(HUMAN,(UUID)group.get("id"),second,"wrong grouping after investigation");
+  assertTrue(problemGroups.byFamily(HUMAN,second).isEmpty());
+  assertEquals(1,((List<?>)problemGroups.detail(HUMAN,(UUID)group.get("id")).get("members")).size());
+  assertEquals(3L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_problem_group_event where space_id=:space and group_id=:id",db.scoped(HUMAN,"id",group.get("id"))).get("n")));
+ }
+ private UUID authoringCause(String cause,UUID reference){
+  var created=authoring.captureHuman(HUMAN,new AuthoringRequests.Capture("依赖版本解析失败，排查确认："+cause,"MANUAL_TEXT","test://problem-group",db.tree(Map.of("domain","engineering")),List.of(),"zh-CN",true,"group-"+UUID.randomUUID()));
+  ObjectNode content=(ObjectNode)((JsonNode)created.get("structuredContent")).deepCopy();
+  content.put("title","Maven 依赖版本解析失败："+cause);content.put("problem","Maven 依赖版本解析失败");content.put("rootCause",cause);content.put("domain","engineering");
+  var edited=authoring.edit(HUMAN,(UUID)created.get("id"),new AuthoringRequests.ManualEdit(content,((Number)created.get("draftVersion")).intValue(),"confirmed cause"));
+  var published=authoring.accept(HUMAN,(UUID)edited.get("id"),new AuthoringRequests.Publication(((Number)edited.get("draftVersion")).intValue(),"CREATE_NEW_FAMILY",null,"engineering","PROBLEM_SOLUTION",null,null,"confirmed separate case",reference,reference==null?null:"ALTERNATIVE_CAUSE"));
+  return (UUID)((Map<?,?>)published.get("experience")).get("family_id");
  }
  @Test void editedDraftKeepsTwoClaimsAndLinksRawInputAsContext(){
   var request=new AuthoringRequests.Capture("日志显示依赖版本缺失；effective-pom 里找不到对应 BOM；补齐版本后构建通过。","MANUAL_TEXT","test://two-claims",db.tree(Map.of("domain","engineering")),List.of(),"zh-CN",true,"multi-claim-"+UUID.randomUUID());
