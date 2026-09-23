@@ -21,9 +21,9 @@ public class ContextService {
   int budget=Math.min(rules.maxContextTokens(),r.maxContextTokens()==null?rules.maxContextTokens():r.maxContextTokens());
   int evidenceLimit=Math.min(rules.maxEvidence(),r.maxEvidence()==null?rules.maxEvidence():r.maxEvidence());
   double confidence=Math.max(rules.minConfidence(),r.minConfidence()==null?rules.minConfidence():r.minConfidence());
-  boolean needEvidence=rules.requireEvidence()||r.needEvidence(),needNegative=rules.requireNegativeCases()||r.needNegativeCases();
-  if(r.deepSearch()&&!rules.allowDeepSearch())throw new LedgerException("DEEP_SEARCH_FORBIDDEN","Policy forbids deep search",403);
-  int limit=r.deepSearch()?rules.deepCandidateLimit():rules.candidateLimit();
+  boolean needEvidence=rules.requireEvidence()||Boolean.TRUE.equals(r.needEvidence()),needNegative=rules.requireNegativeCases()||Boolean.TRUE.equals(r.needNegativeCases());
+  if(Boolean.TRUE.equals(r.deepSearch())&&!rules.allowDeepSearch())throw new LedgerException("DEEP_SEARCH_FORBIDDEN","Policy forbids deep search",403);
+  int limit=Boolean.TRUE.equals(r.deepSearch())?rules.deepCandidateLimit():rules.candidateLimit();
   var ids=db.list("""
    select v.id,ts_rank_cd(v.search_vector,plainto_tsquery('simple',ledger_fts_text(:query)),32) as rank,
     (select e.group_id from exp_problem_group_event e where e.space_id=v.space_id and e.family_id=v.family_id
