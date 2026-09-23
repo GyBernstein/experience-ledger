@@ -19,6 +19,7 @@ export const errorText: Record<string, string> = {
   VERSION_CONFLICT: "经验版本链已变化。请重新查看最新版本后再决定如何合并。",
   CANDIDATE_STATE_CONFLICT: "候选状态已变化，当前操作不可执行。请刷新候选。",
   DRAFT_REVISION_CONFLICT: "草稿已产生新版本，请重新加载后再操作。",
+  PROBLEM_GROUP_CHANGED: "该经验已归入其他问题组。刷新页面后核对，再撤销旧关联或重新选择。",
   DRAFT_SCHEMA_INVALID: "AI 返回的草稿结构不完整，请重新生成或手工修订。",
   LLM_NOT_CONFIGURED: "尚未配置 LLM，当前只能使用保守的本地草稿。",
   LLM_INVOCATION_FAILED: "LLM 调用失败，原始记录已保留，可稍后重新生成。",

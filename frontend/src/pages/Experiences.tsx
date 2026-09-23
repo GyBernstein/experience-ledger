@@ -392,6 +392,7 @@ export function ExperiencePage({
               </aside>
               <div className="stack">
                 <ExperienceContent item={selected} timeQuery={timeQuery} />
+                <ProblemGroupPanel api={api} familyId={id} />
                 <VersionActions
                   key={selected.versionId}
                   api={api}
@@ -443,6 +444,34 @@ export function ExperiencePage({
       )}
     </>
   );
+}
+
+function ProblemGroupPanel({ api, familyId }: { api: LedgerApi; familyId: string }) {
+  const group = useLoad<Row>((s) => api.v2(`/problem-groups/by-family/${familyId}`, undefined, s), [api, familyId]);
+  const suggested = useLoad<Row[]>((s) => api.v2(`/problem-groups/suggestions/${familyId}`, undefined, s), [api, familyId]);
+  const [reference, setReference] = useState("");
+  const [reason, setReason] = useState("同一问题下存在独立的排查案例");
+  const task = useAction();
+  const members = (group.data?.members || []) as Row[];
+  return <div className="panel problem-group-panel">
+    <h2>同一问题的不同原因</h2>
+    <ErrorBox error={group.error || suggested.error || task.error} /><Success>{task.message}</Success>
+    {group.loading ? <Loading /> : members.length ? <>
+      <p>{group.data?.problem}</p>
+      {members.map((member) => <div key={member.family_id} className="problem-group-member">
+        <a href={`#/experiences/${member.family_id}`}>{member.title}</a>
+        <p>根因：{member.root_cause || "尚未确认"} · {member.relation === "ALTERNATIVE_CAUSE" ? "另一种原因" : member.relation === "SAME_CAUSE_CASE" ? "相同原因的独立案例" : "首个案例"} · 证据 {member.evidence_count ?? 0} 条</p>
+        <p className="micro">适用范围：{JSON.stringify(member.applicability_json || {})}</p>
+      </div>)}
+      <p className="micro">归组是排查导航；每条经验的结论和证据仍可独立核对。</p>
+    </> : <p className="micro">尚未归组；如果发现其他原因导致相同问题，可以把新经验归入这个问题。</p>}
+    <details><summary>补充归组或修正错误关联</summary>
+      <Field label="可能相关的经验"><select value={reference} onChange={(e) => setReference(e.target.value)}><option value="">选择系统推荐的案例</option>{suggested.data?.map((item) => <option key={item.family_id} value={item.family_id}>{item.title} · 根因：{item.root_cause || "待确认"}</option>)}</select></Field>
+      <Field label="归组理由"><input value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+      <button type="button" disabled={task.busy || !reference || !reason.trim() || Boolean(group.data?.id)} onClick={() => void task.run(async () => { await api.v2("/problem-groups/attach", { familyId, referenceFamilyId: reference, relation: "ALTERNATIVE_CAUSE", reason }); group.reload(); setReference(""); task.setMessage("已归入问题组。"); })}>关联为同一问题的不同原因</button>
+      {group.data?.id && <button type="button" disabled={task.busy || !reason.trim()} onClick={() => void task.run(async () => { await api.v2(`/problem-groups/${group.data?.id}/members/${familyId}/unlink`, { reason }); group.reload(); task.setMessage("关联已撤销，审计事件已保留。"); })}>撤销当前归组</button>}
+    </details>
+  </div>;
 }
 function ExperienceContent({
   item,

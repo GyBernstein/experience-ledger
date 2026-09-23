@@ -49,7 +49,11 @@ public final class AuthoringRequests {
   String experienceType,
   UUID familyId,
   UUID expectedSupersedesId,
-  @NotBlank @Size(max=2000) String reason) {}
+  @NotBlank @Size(max=2000) String reason,
+  UUID relatedFamilyId,
+  String problemRelation) {
+   public Publication(Integer expectedDraftVersion,String mode,String experienceKey,String domain,String experienceType,UUID familyId,UUID expectedSupersedesId,String reason){this(expectedDraftVersion,mode,experienceKey,domain,experienceType,familyId,expectedSupersedesId,reason,null,null);}
+  }
 
  public record Reject(@NotNull Integer expectedDraftVersion,@NotBlank @Size(max=2000) String reason) {}
 }

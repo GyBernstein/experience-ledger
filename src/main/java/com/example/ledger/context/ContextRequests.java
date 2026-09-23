@@ -15,7 +15,7 @@ public final class ContextRequests {
  public record Validation(@NotBlank String status,@DecimalMin("0") @DecimalMax("1") double assessedConfidence,@NotBlank String reason){}
  public record Compact(@NotBlank @Size(max=200) String title,@NotBlank @Size(max=6000) String summary,@NotBlank String domain,@NotBlank String taskType,@NotNull UUID representativeId,@NotEmpty @Size(max=20) List<@NotNull UUID> versionIds,@NotBlank String reason){}
  public record Context(@NotBlank String domain,@NotBlank String taskType,String assetType,@Size(max=4000) String query,JsonNode context,
- @Min(256) @Max(20000) Integer maxContextTokens,@Min(0) @Max(50) Integer maxEvidence,@DecimalMin("0") @DecimalMax("1") Double minConfidence,boolean needNegativeCases,boolean needEvidence,boolean deepSearch,UUID policyId){}
+ @Min(256) @Max(20000) Integer maxContextTokens,@Min(0) @Max(50) Integer maxEvidence,@DecimalMin("0") @DecimalMax("1") Double minConfidence,Boolean needNegativeCases,Boolean needEvidence,Boolean deepSearch,UUID policyId){}
  public record Feedback(@NotNull UUID runId,@NotNull UUID versionId,@NotBlank @Size(max=200) String eventKey,boolean adopted,String outcomeType,@NotBlank @Size(max=10000) String evaluation,
  @Min(0) Long actualInputTokens,@Min(0) Long actualOutputTokens,@DecimalMin("0") BigDecimal reportedCost,@Size(max=10) String currency){}
  public record Review(@NotBlank String verdict,@NotBlank String reason){}
