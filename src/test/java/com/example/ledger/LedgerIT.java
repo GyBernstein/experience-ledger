@@ -8,6 +8,7 @@ import com.example.ledger.infrastructure.Db;
 import com.example.ledger.provider.*;
 import com.example.ledger.retrieval.RetrievalService;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.*;
@@ -82,9 +83,33 @@ class LedgerIT {
   var request=new AuthoringRequests.Capture("构建缺少依赖版本，检查 effective-pom 后发现 BOM 未覆盖子模块。", "MANUAL_TEXT","test://authoring",db.tree(Map.of("domain","engineering","taskType","maven_diagnosis")),List.of(),"zh-CN",true,"authoring-"+UUID.randomUUID());var captured=authoring.captureHuman(HUMAN,request);
   UUID draftId=UUID.fromString(captured.get("id").toString());assertEquals("CREATED",captured.get("status"));assertTrue(((JsonNode)captured.get("structuredContent")).path("missingInformation").size()>0);
   assertEquals(draftId,authoring.captureHuman(HUMAN,request).get("id"));
+  var candidate=ledger.candidate(HUMAN,UUID.fromString(captured.get("candidateId").toString()));
+  var rawEvidence=((JsonNode)candidate.get("extracted_json")).path("capturedEvidenceIds");
+  assertEquals(1,rawEvidence.size());assertEquals("USER_NOTE",ledger.evidence(HUMAN,UUID.fromString(rawEvidence.path(0).asText())).get("evidence_type"));
   var result=authoring.accept(HUMAN,draftId,new AuthoringRequests.Publication(((Number)captured.get("draftVersion")).intValue(),"CREATE_NEW_FAMILY",null,"engineering","DECISION",null,null,"human confirms conservative draft"));
   assertNotNull(((Map<?,?>)result.get("experience")).get("id"));assertEquals("ACCEPTED",authoring.draft(HUMAN,draftId).get("status"));
   assertEquals(1L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_draft_publication where space_id=:space and draft_id=:id",db.scoped(HUMAN,"id",draftId)).get("n")));
+  assertEquals(1L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_claim_evidence ce join exp_experience_claim c on c.space_id=ce.space_id and c.id=ce.claim_id where ce.space_id=:space and c.experience_version_id=:version and ce.support_type='CONTEXT'",db.scoped(HUMAN,"version",((Map<?,?>)result.get("experience")).get("id"))).get("n")));
+ }
+ @Test void editedDraftKeepsTwoClaimsAndLinksRawInputAsContext(){
+  var request=new AuthoringRequests.Capture("日志显示依赖版本缺失；effective-pom 里找不到对应 BOM；补齐版本后构建通过。","MANUAL_TEXT","test://two-claims",db.tree(Map.of("domain","engineering")),List.of(),"zh-CN",true,"multi-claim-"+UUID.randomUUID());
+  var created=authoring.captureHuman(HUMAN,request);
+  ObjectNode doc=(ObjectNode)((JsonNode)created.get("structuredContent")).deepCopy();
+  var claims=doc.putArray("claims");
+  claims.addObject().put("kind","OBSERVED").put("claimType","OBSERVATION").put("content","原始日志记录了版本缺失");
+  claims.addObject().put("kind","DERIVED").put("claimType","RULE").put("content","遇到版本缺失时先核对 BOM 覆盖范围");
+  var candidate=ledger.candidate(HUMAN,UUID.fromString(created.get("candidateId").toString()));
+  String sourceEvidenceId=((JsonNode)candidate.get("extracted_json")).path("capturedEvidenceIds").path(0).asText();
+  doc.putArray("evidenceMappings").addObject().put("claimIndex",0).put("evidenceRef",sourceEvidenceId).put("relation","SUPPORTS");
+  var edited=authoring.edit(HUMAN,UUID.fromString(created.get("id").toString()),new AuthoringRequests.ManualEdit(doc,((Number)created.get("draftVersion")).intValue(),"split judgment points"));
+  JsonNode draft=(JsonNode)edited.get("structuredContent");
+  assertEquals(2,draft.path("claims").size());assertEquals(2,draft.path("evidenceMappings").size());
+  for(JsonNode mapping:draft.path("evidenceMappings"))assertEquals("CONTEXT",mapping.path("relation").asText());
+  var result=authoring.accept(HUMAN,UUID.fromString(edited.get("id").toString()),new AuthoringRequests.Publication(((Number)edited.get("draftVersion")).intValue(),"CREATE_NEW_FAMILY",null,"engineering","DECISION",null,null,"confirmed two points"));
+  UUID version=(UUID)((Map<?,?>)result.get("experience")).get("id");
+  assertEquals(2L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_experience_claim where space_id=:space and experience_version_id=:version",db.scoped(HUMAN,"version",version)).get("n")));
+  assertEquals(0L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_experience_claim where space_id=:space and experience_version_id=:version and origin_type='OBSERVED'",db.scoped(HUMAN,"version",version)).get("n")));
+  assertEquals(2L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_claim_evidence ce join exp_experience_claim c on c.space_id=ce.space_id and c.id=ce.claim_id where ce.space_id=:space and c.experience_version_id=:version and ce.support_type='CONTEXT'",db.scoped(HUMAN,"version",version)).get("n")));
  }
  @Test void httpEndToEnd(){
   var headers=new HttpHeaders();headers.setBearerAuth(HUMAN_TOKEN);headers.setContentType(MediaType.APPLICATION_JSON);

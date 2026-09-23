@@ -95,6 +95,7 @@ export function CapturePageV12({ api }: { api: LedgerApi }) {
           />
           <details className="advanced">
             <summary>附加上下文与已有 Evidence（可选）</summary>
+            <p className="micro">原始输入会自动留为来源证据；如有独立日志、工单或测试结果，可填写已入账的 Evidence ID 增强佐证。</p>
             <div className="form-grid">
               <Field label="来源类型">
                 <select
@@ -337,8 +338,10 @@ function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft
         <Badge value={draft.status} /><span>Draft V{draft.draftVersion}</span>
         <span>{draft.provider} / {draft.model}</span>
         <span className="micro">Prompt {draft.promptCode} v{draft.promptVersion}</span>
+        <span>结论 {(doc.claims?.length ?? 0)} 条 · 证据关联 {(doc.evidenceMappings?.length ?? 0)} 条</span>
       </div>
       <ErrorBox error={task.error} /><Success>{task.message}</Success>
+      {(doc.claims?.length ?? 0) === 0 && !terminal && draft.status !== "GENERATION_FAILED" && <div className="notice warning">当前草稿尚未拆出独立结论。直接发布只会生成一条保守的兜底结论；建议先修订或补充结论。</div>}
       {published && <div className="notice success">已发布为正式经验。<a href={`#/experiences/${published.family_id}`}>查看 Experience V{published.version_no}</a></div>}
       {draft.status === "GENERATION_FAILED" && <div className="notice error">草稿生成失败：{draft.errorSummary}<button disabled={task.busy} onClick={() => void task.run(async () => continueWith(await api.v2<AuthoringDraft>(`/drafts/${draft.id}/regenerate`, { expectedDraftVersion: draft.draftVersion, reason: "retry after generation failure" }), "已重新生成。"))}>重新生成</button></div>}
       <div className="draft-review-layout">
@@ -362,7 +365,7 @@ function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft
             <div className="form-grid">
               {(["actions", "applicability", "boundaryConditions", "constraints", "alternatives", "tradeoffs"] as const).map((field) => <Field key={field} label={{actions:"行动（每行一项）",applicability:"适用条件",boundaryConditions:"边界条件",constraints:"约束",alternatives:"备选方案",tradeoffs:"权衡"}[field]}><textarea value={lines(doc[field])} onChange={(e) => edit({ [field]: fromLines(e.target.value) })} /></Field>)}
             </div>
-            <details className="advanced"><summary>Claims 与 Evidence Mapping</summary><p className="micro">Evidence 只能引用已经存在的 ID；AI 生成的 Claim 保留 AGENT_DERIVED 来源。</p><textarea className="code-input" rows={12} value={advanced} onChange={(e) => { setAdvanced(e.target.value); setDirty(true); }} /></details>
+            <details className="advanced"><summary>结论与证据关联（{(doc.claims?.length ?? 0)} / {(doc.evidenceMappings?.length ?? 0)}）</summary><p className="micro">来源快照仅作 CONTEXT，独立证据才可支持观察结论；AI 生成的结论保留 AGENT_DERIVED 来源。Evidence 只能引用已存在的 ID。</p><textarea className="code-input" rows={12} value={advanced} onChange={(e) => { setAdvanced(e.target.value); setDirty(true); }} /></details>
             <Field label="审核 / 发布理由"><textarea value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
             <div className="actions">
               <button type="button" disabled={!dirty} onClick={() => void task.run(async () => continueWith(await api.v2<AuthoringDraft>(`/drafts/${draft.id}/edit`, { expectedDraftVersion: draft.draftVersion, structuredContent: content(), reason }), "手工修改已保存为新的 Draft Version。"))}><Save size={16} />保存修改</button>
