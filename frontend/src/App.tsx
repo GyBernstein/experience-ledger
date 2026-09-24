@@ -43,16 +43,18 @@ const navigation = [
   ["/usage", "使用与反馈", Repeat2],
   ["/audit", "审计日志", ScrollText],
 ] as const;
-class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean; detail: string }> {
+  state = { failed: false, detail: "" };
+  static getDerivedStateFromError(error: unknown) {
+    return { failed: true, detail: error instanceof Error ? error.message : "未知渲染错误" };
   }
   render() {
     return this.state.failed ? (
       <div className="panel">
         <h2>页面无法显示</h2>
-        <p>可能收到不兼容的响应，请检查后端版本并重新加载。</p>
+        <p>页面渲染发生错误，请返回审核工作箱或重新加载。</p>
+        <details><summary>错误详情</summary><code>{this.state.detail}</code></details>
+        <a className="button" href="#/review">返回审核工作箱</a>
         <button onClick={() => window.location.reload()}>重新加载</button>
       </div>
     ) : (
@@ -90,7 +92,7 @@ export default function App() {
   const [path, search = ""] = location.split("?");
   const params = new URLSearchParams(search);
   const current =
-    navigation.find(([prefix]) => path.startsWith(prefix)) || navigation[0];
+    navigation.find(([prefix]) => path === "/drafts" ? prefix === "/review" : path.startsWith(prefix)) || navigation[0];
   const logout = () => {
     if (
       !window.confirm("断开连接会清除当前凭证，并丢弃未保存的页面草稿。继续？")
@@ -115,7 +117,7 @@ export default function App() {
     );
   else if (path === "/capture") page = <CapturePageV12 api={api} />;
   else if (path.startsWith("/drafts/")) page = <DraftReviewPage api={api} id={path.split("/")[2]} />;
-  else if (path === "/review") page = <ReviewInboxPage api={api} />;
+  else if (path === "/review" || path === "/drafts") page = <ReviewInboxPage api={api} />;
   else if (path === "/evidence")
     page = <EvidencePage api={api} initialId={params.get("id") || ""} />;
   else if (path === "/usage")
@@ -149,12 +151,12 @@ export default function App() {
               key={href}
               href={`#${href}`}
               className={
-                path.startsWith(href) ||
+                path.startsWith(href) || (path === "/drafts" && href === "/review") ||
                 (href === "/search" && path.startsWith("/experiences"))
                   ? "active"
                   : ""
               }
-              aria-current={path.startsWith(href) ? "page" : undefined}
+              aria-current={path.startsWith(href) || (path === "/drafts" && href === "/review") ? "page" : undefined}
             >
               <Icon size={19} />
               <span>{label}</span>
