@@ -287,7 +287,8 @@ export function ReviewInboxPage({ api }: { api: LedgerApi }) {
   );
 }
 
-function lines(value: string[]) { return value.join("\n"); }
+// A failed generation stores an empty structuredContent so the raw capture stays reviewable.
+function lines(value: unknown) { return Array.isArray(value) ? value.filter((x): x is string => typeof x === "string").join("\n") : ""; }
 function fromLines(value: string) { return value.split("\n").map((x) => x.trim()).filter(Boolean); }
 
 export function DraftReviewPage({ api, id }: { api: LedgerApi; id: string }) {
@@ -308,7 +309,7 @@ export function DraftReviewPage({ api, id }: { api: LedgerApi; id: string }) {
   );
 }
 
-function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft }) {
+export function DraftEditor({ api, initial }: { api: LedgerApi; initial: AuthoringDraft }) {
   const [draft, setDraft] = useState(initial);
   const [doc, setDoc] = useState(() => structuredClone(initial.structuredContent));
   const [instruction, setInstruction] = useState("");
