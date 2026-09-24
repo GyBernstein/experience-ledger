@@ -64,6 +64,7 @@ class LedgerIT {
   public JsonNode enrich(Candidate c,CaptureContext context){if(fail)throw new IllegalStateException("offline");return c.extracted();}
  }
  @Autowired Db db;@Autowired LedgerService ledger;@Autowired RetrievalService retrieval;@Autowired ProcessingWorker worker;@Autowired AuthoringService authoring;@Autowired ProblemGroupService problemGroups;
+ @Autowired DraftAssistProvider draftProvider;@Autowired PromptService prompts;@Autowired DraftSchema draftSchema;
  @Autowired ToggleEmbedding embedding;@Autowired ToggleEnrichment enrichment;@Autowired TestRestTemplate http;
  @BeforeEach void seedSpace(){embedding.mode="disabled";enrichment.fail=false;db.with(HUMAN,"test setup",()->{db.update("insert into exp_space(id,name) values(:space,'test') on conflict do nothing",db.scoped(HUMAN));return null;});}
  Capture captureRequest(){return new Capture("pruning candidates reduced utilization 剪枝",null,"TEST","test",UUID.randomUUID().toString(),"COMPLETED",null,null,null,null);}
@@ -81,6 +82,18 @@ class LedgerIT {
   assertTrue(((Number)db.one("select count(*) as n from flyway_schema_history where success and type='SQL'",Map.of()).get("n")).longValue()>=4L);
   assertEquals(1L,db.one("select count(*) as n from flyway_schema_history where success and version='5'",Map.of()).get("n"));return null;
  });}
+ @Test void problemGroupingMigrationIsVisibleToRuntimeRole(){
+  assertTrue(problemGroups.available(HUMAN));
+  assertEquals(1L,db.with(HUMAN,null,()->db.one("select count(*) n from flyway_schema_history where success and version='7'",Map.of()).get("n")));
+ }
+ @Test void optionalSimilarityFailureIsNotMisreportedAsAiFailure(){
+  var brokenGroups=new ProblemGroupService(db){@Override public List<Map<String,Object>> suggest(ActorContext actor,JsonNode draft){throw new IllegalStateException("similarity lookup failed");}};
+  var service=new AuthoringService(db,ledger,draftProvider,prompts,draftSchema,brokenGroups);
+  String sourceRef="test://similarity-"+UUID.randomUUID();
+  var request=new AuthoringRequests.Capture("排查依赖版本时先检查 effective-pom。","MANUAL_TEXT",sourceRef,db.tree(Map.of("domain","engineering")),List.of(),"zh-CN",true,"similarity-"+UUID.randomUUID());
+  assertEquals("similarity lookup failed",assertThrows(IllegalStateException.class,()->service.captureHuman(HUMAN,request)).getMessage());
+  assertEquals(0L,db.with(HUMAN,null,()->db.one("select count(*) n from exp_experience_draft d join exp_candidate c on c.space_id=d.space_id and c.id=d.candidate_id where c.space_id=:space and c.source_ref=:ref",db.scoped(HUMAN,"ref",sourceRef)).get("n")));
+ }
  @Test void aiAssistedDraftKeepsRawInputAndPublishesOnlyAfterHumanAccept(){
   var request=new AuthoringRequests.Capture("构建缺少依赖版本，检查 effective-pom 后发现 BOM 未覆盖子模块。", "MANUAL_TEXT","test://authoring",db.tree(Map.of("domain","engineering","taskType","maven_diagnosis")),List.of(),"zh-CN",true,"authoring-"+UUID.randomUUID());var captured=authoring.captureHuman(HUMAN,request);
   UUID draftId=UUID.fromString(captured.get("id").toString());assertEquals("CREATED",captured.get("status"));assertTrue(((JsonNode)captured.get("structuredContent")).path("missingInformation").size()>0);

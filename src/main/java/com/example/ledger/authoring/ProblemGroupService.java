@@ -13,6 +13,9 @@ public class ProblemGroupService {
  private final Db db;
  public ProblemGroupService(Db db){this.db=db;}
 
+ /** An older database may temporarily serve authoring while the V7 migration is pending. */
+ public boolean available(ActorContext a){return db.with(a,null,()->Boolean.TRUE.equals(db.one("select to_regclass('exp_problem_group') is not null and to_regclass('exp_problem_group_event') is not null as ready",Map.of()).get("ready")));}
+
  public List<Map<String,Object>> suggest(ActorContext a,JsonNode draft){return db.with(a,null,()->{
   String domain=draft.path("domain").asText("general");if(domain.isBlank())domain="general";
   String problem=draft.path("problem").asText().trim();

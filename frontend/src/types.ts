@@ -138,6 +138,7 @@ export interface AuthoringDraft {
   candidate?: Candidate;
   history?: Row[];
   similar?: Row[];
+  similarWarning?: string;
   diff?: Row[];
 }
 export interface ReviewInboxItem {
