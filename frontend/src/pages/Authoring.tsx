@@ -347,6 +347,7 @@ export function DraftEditor({ api, initial }: { api: LedgerApi; initial: Authori
       {(doc.claims?.length ?? 0) === 0 && !terminal && draft.status !== "GENERATION_FAILED" && <div className="notice warning">当前草稿尚未拆出独立结论。直接发布只会生成一条保守的兜底结论；建议先修订或补充结论。</div>}
       {published && <div className="notice success">已发布为正式经验。<a href={`#/experiences/${published.family_id}`}>查看 Experience V{published.version_no}</a></div>}
       {draft.status === "GENERATION_FAILED" && <div className="notice error">草稿生成失败：{draft.errorSummary}<button disabled={task.busy} onClick={() => void task.run(async () => continueWith(await api.v2<AuthoringDraft>(`/drafts/${draft.id}/regenerate`, { expectedDraftVersion: draft.draftVersion, reason: "retry after generation failure" }), "已重新生成。"))}>重新生成</button></div>}
+      {draft.similarWarning && <div className="notice warning">{draft.similarWarning}</div>}
       <div className="draft-review-layout">
         <aside className="panel source-pane">
           <div className="section-heading"><h2>原始输入</h2><Badge value={draft.candidate?.source_type || "SOURCE"} /></div>
@@ -384,7 +385,7 @@ export function DraftEditor({ api, initial }: { api: LedgerApi; initial: Authori
                 同一问题：{item.title}（已有根因：{item.root_cause || "待确认"}）
               </label>)}
               {relatedFamily && <Field label="本次和已有经验的关系"><select value={problemRelation} onChange={(event) => setProblemRelation(event.target.value)}><option value="ALTERNATIVE_CAUSE">另一种原因及处理方法</option><option value="SAME_CAUSE_CASE">相同原因的独立案例</option></select></Field>}
-              {!draft.similar?.length && <p className="micro">尚无相近案例；照常发布，之后仍可在经验详情页归组。</p>}
+              {!draft.similar?.length && !draft.similarWarning && <p className="micro">尚无相近案例；照常发布，之后仍可在经验详情页归组。</p>}
             </div>
             <div className="publish-box">
               <div><b>确认后写入组织经验</b><p>发布将生成 Experience、Claim、Evidence 关系以及 L0/L1/L2 摘要。</p></div>
